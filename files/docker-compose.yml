@@ -1,0 +1,75 @@
+version: '3.9'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgis/postgis:15-3.3
+    container_name: aquafresh_db
+    environment:
+      POSTGRES_DB: aquafresh
+      POSTGRES_USER: aquauser
+      POSTGRES_PASSWORD: aquapass123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql
+      - ./database/seed_data.sql:/docker-entrypoint-initdb.d/02_seed.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aquauser -d aquafresh"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis (for OTP & sessions)
+  redis:
+    image: redis:7-alpine
+    container_name: aquafresh_redis
+    ports:
+      - "6379:6379"
+
+  # FastAPI Backend
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: aquafresh_api
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://aquauser:aquapass123@postgres:5432/aquafresh
+      REDIS_URL: redis://redis:6379
+      SECRET_KEY: aquafresh_secret_key_change_in_production
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    volumes:
+      - ./backend:/app
+      - ./ml_model:/app/ml_model
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+
+  # React Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: aquafresh_web
+    ports:
+      - "3000:3000"
+    environment:
+      REACT_APP_API_URL: http://localhost:8000
+      REACT_APP_GOOGLE_MAPS_KEY: YOUR_GOOGLE_MAPS_KEY_HERE
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+
+volumes:
+  postgres_data:
+
+networks:
+  default:
+    name: aquafresh_network
