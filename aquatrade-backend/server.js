@@ -74,7 +74,7 @@ app.use("/uploads", express.static(uploadsPath));
 ================================ */
 
 app.get("/", (req, res) => {
-  res.send("AquaFresh Backend Running 🚀");
+  res.send("AquaTrade Backend Running 🚀");
 });
 
 /* ===============================
@@ -98,5 +98,5 @@ app.use(errorMiddleware);
 const PORT = 5000;
 
 server.listen(PORT, () => {
-  console.log(`🚀 AquaFresh server running on port ${PORT}`);
+  console.log(`🚀 AquaTrade server running on port ${PORT}`);
 });

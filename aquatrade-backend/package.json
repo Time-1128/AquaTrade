@@ -1,7 +1,7 @@
 {
-  "name": "aquafresh-backend",
+  "name": "aquatrade-backend",
   "version": "1.0.0",
-  "description": "AquaFresh Backend API",
+  "description": "AquaTrade Backend API",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"

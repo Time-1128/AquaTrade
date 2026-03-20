@@ -1,5 +1,5 @@
 /* =================================
-   AQUAFRESH AI PRICING ENGINE
+   AQUATRADE AI PRICING ENGINE
    Smart Dynamic Fish Pricing
 ================================= */
 
