@@ -21,27 +21,71 @@ export default function SellerDashboard() {
 
   const [form, setForm] = useState({
     name: "",
+    fishTypes: [],
+    address: "",
+    location: null,
     type: "Sea water",
     category: "Fish",
     price: "",
     stock: "",
-    freshness: "1hour",
+    catchDateTime: "",
     description: ""
   });
 
-  const freshnessOptions = [
-    { id: "1hour", label: "🕐 1 Hour", value: "1 hour" },
-    { id: "1day", label: "📅 1 Day", value: "1 day" },
-    { id: "3days", label: "📅 3 Days", value: "3 days" },
-    { id: "1week", label: "📅 1 Week", value: "1 week" }
-  ];
+  const fishTypeOptions = ["Freshwater", "Saltwater", "Shellfish", "Exotic"];
 
   const [toast, setToast] = useState("");
+  const [geoLoading, setGeoLoading] = useState(false);
   const [supplyCart, setSupplyCart] = useState([]);
 
   const showToast = (msg) => {
     setToast(msg);
     setTimeout(() => setToast(""), 3000);
+  };
+
+  const useCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      showToast("Geolocation not supported");
+      return;
+    }
+
+    setGeoLoading(true);
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+
+        try {
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`
+          );
+          const data = await response.json();
+          const address = data.display_name || `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+
+          setForm((f) => ({
+            ...f,
+            address,
+            location: { lat, lng }
+          }));
+          showToast("Address filled from current location");
+        } catch (err) {
+          console.error(err);
+          showToast("Unable to resolve address from location");
+        } finally {
+          setGeoLoading(false);
+        }
+      },
+      (error) => {
+        console.error(error);
+        setGeoLoading(false);
+        showToast("Location access denied or unavailable");
+      }
+    );
+  };
+
+  const openMapPicker = () => {
+    window.open("https://www.openstreetmap.org", "_blank");
   };
 
   /* ---------------- FETCH BOOKINGS ---------------- */
@@ -78,9 +122,12 @@ export default function SellerDashboard() {
       formData.append("category", form.category);
       formData.append("price", form.price);
       formData.append("stock", form.stock);
-      formData.append("freshness", form.freshness);
+      formData.append("catchDateTime", form.catchDateTime);
       formData.append("description", form.description);
       formData.append("sellerName", state.user?.name || "Your Store");
+      formData.append("address", form.address);
+      formData.append("location", JSON.stringify(form.location || null));
+      formData.append("fishTypes", JSON.stringify(form.fishTypes));
 
       if (imageFile) {
         formData.append("image", imageFile);
@@ -91,7 +138,11 @@ export default function SellerDashboard() {
         body: formData
       });
 
-      if (!response.ok) throw new Error("Server error");
+      if (!response.ok) {
+        const text = await response.text();
+        console.error("Fish save failed:", response.status, text);
+        throw new Error(text || "Server error");
+      }
 
       const data = await response.json();
 
@@ -102,6 +153,7 @@ export default function SellerDashboard() {
         stock: Number(form.stock),
         image: data.image || "🐟",
         sellerName: state.user?.name || "Your Store",
+        location: { address: form.address },
         color: "#00B4D8"
       };
 
@@ -112,11 +164,14 @@ export default function SellerDashboard() {
 
       setForm({
         name: "",
+        fishTypes: [],
+        address: "",
+        location: null,
         type: "Sea water",
         category: "Fish",
         price: "",
         stock: "",
-        freshness: "1hour",
+        catchDateTime: "",
         description: ""
       });
 
@@ -262,6 +317,80 @@ export default function SellerDashboard() {
             <input className="input-field" placeholder="Fish Name" value={form.name}
               onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
 
+            <div style={{ margin: "16px 0" }}>
+              <h4 style={{ fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: "14px", color: "#0A3D62", marginBottom: "10px" }}>
+                🧭 Fish Type
+              </h4>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "10px" }}>
+                {fishTypeOptions.map((type) => {
+                  const isSelected = form.fishTypes.includes(type);
+                  return (
+                    <button
+                      key={type}
+                      type="button"
+                      onClick={() => setForm(f => ({ ...f, fishTypes: [type] }))}
+                      style={{
+                        padding: "12px 14px",
+                        borderRadius: "12px",
+                        border: isSelected ? "2px solid #2ECC71" : "1px solid #E0E0E0",
+                        background: isSelected ? "rgba(46, 204, 113, 0.12)" : "white",
+                        color: "#0A3D62",
+                        cursor: "pointer",
+                        fontWeight: 700,
+                        textAlign: "center"
+                      }}
+                    >
+                      {type}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <input className="input-field" placeholder="Seller address or pickup location"
+              value={form.address}
+              onChange={e => setForm(f => ({ ...f, address: e.target.value }))} />
+
+            <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", marginBottom: "14px" }}>
+              <button
+                type="button"
+                onClick={useCurrentLocation}
+                style={{
+                  flex: 1,
+                  minWidth: "140px",
+                  padding: "12px",
+                  borderRadius: "12px",
+                  border: "1px solid #E0E0E0",
+                  background: "white",
+                  color: "#0A3D62",
+                  cursor: "pointer"
+                }}
+              >
+                {geoLoading ? "Locating..." : "Use current location"}
+              </button>
+
+              <button
+                type="button"
+                onClick={openMapPicker}
+                style={{
+                  flex: 1,
+                  minWidth: "140px",
+                  padding: "12px",
+                  borderRadius: "12px",
+                  border: "1px solid #E0E0E0",
+                  background: "white",
+                  color: "#0A3D62",
+                  cursor: "pointer"
+                }}
+              >
+                Pick from map
+              </button>
+            </div>
+
+            <p style={{ fontSize: "12px", color: "#718096", marginTop: "6px" }}>
+              Tip: use current location or open the map to select a pickup point, then paste or confirm the address above.
+            </p>
+
             <input className="input-field" type="number" placeholder="Price per kg"
               value={form.price}
               onChange={e => setForm(f => ({ ...f, price: e.target.value }))} />
@@ -272,44 +401,15 @@ export default function SellerDashboard() {
 
             <div style={{ marginBottom: "18px" }}>
               <h4 style={{ fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: "14px", color: "#0A3D62", marginBottom: "12px" }}>
-                ⏰ Time of Catch / Freshness
+                🕐 Date & Time of Catch
               </h4>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
-                {freshnessOptions.map(option => (
-                  <label key={option.id} style={{
-                    display: "flex",
-                    alignItems: "center",
-                    padding: "10px 12px",
-                    borderRadius: "10px",
-                    border: form.freshness === option.id ? "2px solid #2ECC71" : "2px solid #E0E0E0",
-                    background: form.freshness === option.id ? "rgba(46, 204, 113, 0.1)" : "white",
-                    cursor: "pointer",
-                    transition: "all 0.2s"
-                  }}>
-                    <input
-                      type="radio"
-                      name="freshness"
-                      value={option.id}
-                      checked={form.freshness === option.id}
-                      onChange={e => setForm(f => ({ ...f, freshness: e.target.value }))}
-                      style={{
-                        marginRight: "8px",
-                        cursor: "pointer",
-                        width: "18px",
-                        height: "18px"
-                      }}
-                    />
-                    <span style={{
-                      fontFamily: "'Syne', sans-serif",
-                      fontSize: "13px",
-                      fontWeight: 600,
-                      color: "#0A3D62"
-                    }}>
-                      {option.label}
-                    </span>
-                  </label>
-                ))}
-              </div>
+              <input
+                type="datetime-local"
+                className="input-field"
+                value={form.catchDateTime}
+                onChange={e => setForm(f => ({ ...f, catchDateTime: e.target.value }))}
+                style={{ width: "100%" }}
+              />
             </div>
 
             <textarea className="input-field" placeholder="Description"

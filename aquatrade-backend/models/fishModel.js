@@ -14,9 +14,9 @@ function addFish(fish) {
 
     const query = `
       INSERT INTO fish
-      (name, price, stock, type, category, freshness, description,
+      (name, price, stock, type, category, freshness, catchDateTime, description,
        rating, reviews, sellerName, sellerDist, eta, discount, image, color)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
     const values = [
@@ -26,6 +26,7 @@ function addFish(fish) {
       fish.type,
       fish.category,
       fish.freshness,
+      fish.catchDateTime,
       fish.description,
       fish.rating,
       fish.reviews,

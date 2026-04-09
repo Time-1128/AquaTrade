@@ -106,13 +106,24 @@ export default function ProductDetailPage() {
 
   const openMaps = () => {
 
-    if (!fish?.location) {
-      alert("Location not available");
+    const address =
+      fish.location?.address ||
+      fish.address ||
+      fish.sellerAddress;
+
+    if (fish?.location?.lat && fish?.location?.lng) {
+      const url = `https://www.google.com/maps?q=${fish.location.lat},${fish.location.lng}`;
+      window.open(url, "_blank");
       return;
     }
 
-    const url = `https://www.google.com/maps?q=${fish.location.lat},${fish.location.lng}`;
-    window.open(url, "_blank");
+    if (address) {
+      const url = `https://www.google.com/maps?q=${encodeURIComponent(address)}`;
+      window.open(url, "_blank");
+      return;
+    }
+
+    alert("Location not available");
 
   };
 
@@ -335,11 +346,14 @@ export default function ProductDetailPage() {
           {activeTab === "seller" && (
             <>
               <p>🎣 Seller: {fish.sellerName}</p>
-              <p>📍 {fish.location?.address || "Location unavailable"}</p>
+              <p>
+                📍 {fish.location?.address || fish.address || fish.sellerAddress || "Location unavailable"}
+              </p>
 
               <button
                 onClick={openMaps}
                 className="btn-secondary"
+                disabled={!(fish.location?.address || fish.address || fish.sellerAddress || (fish.location?.lat && fish.location?.lng))}
               >
                 View on Maps
               </button>

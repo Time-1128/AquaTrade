@@ -12,9 +12,19 @@ export default function SellerDashboard() {
   const { state, dispatch } = useApp();
   const { sellerProducts, orders } = state;
   const [activeTab, setActiveTab] = useState("dashboard");
-  const [form, setForm] = useState({ name: "", type: "Sea water", category: "Fish", price: "", stock: "", freshness: 90, description: "" });
+  const [form, setForm] = useState({ name: "", fishTypes: [], type: "Sea water", category: "Fish", price: "", stock: "", freshness: 90, description: "" });
   const [toast, setToast] = useState("");
   const [supplyCart, setSupplyCart] = useState([]);
+  const fishTypeOptions = ["Freshwater", "Saltwater", "Shellfish", "Exotic"];
+
+  const handleFishTypeChange = (type) => {
+    setForm(prev => ({
+      ...prev,
+      fishTypes: prev.fishTypes.includes(type)
+        ? prev.fishTypes.filter(t => t !== type)
+        : [...prev.fishTypes, type]
+    }));
+  };
 
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(""), 3000); };
 
@@ -28,12 +38,19 @@ export default function SellerDashboard() {
       tags: ["New"], location: { lat: 13.0827, lng: 80.2707, address: "Your Market Location" }
     };
     dispatch({ type: "ADD_SELLER_PRODUCT", payload: newFish });
-    setForm({ name: "", type: "Sea water", category: "Fish", price: "", stock: "", freshness: 90, description: "" });
+    setForm({ name: "", fishTypes: [], type: "Sea water", category: "Fish", price: "", stock: "", freshness: 90, description: "" });
     showToast("Fish listed successfully! 🎉");
   };
 
   const totalRevenue = orders.reduce((s, o) => s + o.total, 0);
   const totalOrders = orders.length;
+
+  const fishTypeBadgeColors = {
+    Freshwater: { bg: "#E0F2FE", color: "#0369A1" },
+    Saltwater:  { bg: "#E0FDF4", color: "#065F46" },
+    Shellfish:  { bg: "#FEF3C7", color: "#92400E" },
+    Exotic:     { bg: "#FAE8FF", color: "#7E22CE" },
+  };
 
   return (
     <div className="app-container">
@@ -130,21 +147,68 @@ export default function SellerDashboard() {
         {activeTab === "add" && (
           <div style={{ background: "white", borderRadius: "16px", padding: "20px", boxShadow: "0 2px 12px rgba(0,0,0,0.05)" }}>
             <h3 style={{ fontFamily: "'Syne', sans-serif", fontWeight: 800, fontSize: "16px", color: "#0A3D62", marginBottom: "18px" }}>🐟 List Your Catch</h3>
-            {[
-              { key: "name", label: "Fish Name *", placeholder: "e.g., Fresh Pomfret" },
-              { key: "price", label: "Price per kg (₹) *", placeholder: "e.g., 450", type: "number" },
-              { key: "stock", label: "Available stock (kg) *", placeholder: "e.g., 20", type: "number" },
-              { key: "description", label: "Description", placeholder: "Fresh catch description..." }
-            ].map(f => (
-              <div key={f.key} style={{ marginBottom: "14px" }}>
-                <label style={{ fontSize: "13px", fontFamily: "'Syne', sans-serif", fontWeight: 600, color: "#4A5568", display: "block", marginBottom: "6px" }}>{f.label}</label>
-                {f.key === "description" ? (
-                  <textarea value={form[f.key]} onChange={e => setForm(fm => ({ ...fm, [f.key]: e.target.value }))} rows={3} placeholder={f.placeholder} className="input-field" style={{ resize: "none" }} />
-                ) : (
-                  <input type={f.type || "text"} value={form[f.key]} onChange={e => setForm(fm => ({ ...fm, [f.key]: e.target.value }))} placeholder={f.placeholder} className="input-field" />
-                )}
+
+            {/* Fish Name */}
+            <div style={{ marginBottom: "14px" }}>
+              <label style={{ fontSize: "13px", fontFamily: "'Syne', sans-serif", fontWeight: 600, color: "#4A5568", display: "block", marginBottom: "6px" }}>Fish Name *</label>
+              <input type="text" value={form.name} onChange={e => setForm(fm => ({ ...fm, name: e.target.value }))} placeholder="e.g., Fresh Pomfret" className="input-field" />
+            </div>
+
+            {/* Fish Type Checkboxes — placed right after Fish Name */}
+            <div style={{ marginBottom: "14px" }}>
+              <label style={{ fontSize: "13px", fontFamily: "'Syne', sans-serif", fontWeight: 600, color: "#4A5568", display: "block", marginBottom: "8px" }}>
+                🐠 Type of Fish
+              </label>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+                {fishTypeOptions.map(type => {
+                  const isChecked = form.fishTypes.includes(type);
+                  const colors = fishTypeBadgeColors[type];
+                  return (
+                    <label
+                      key={type}
+                      style={{
+                        display: "flex", alignItems: "center", gap: "8px",
+                        padding: "10px 14px", borderRadius: "10px", cursor: "pointer",
+                        border: `2px solid ${isChecked ? colors.color : "#E2E8F0"}`,
+                        background: isChecked ? colors.bg : "#FAFAFA",
+                        transition: "all 0.2s"
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => handleFishTypeChange(type)}
+                        style={{ accentColor: colors.color, width: "15px", height: "15px" }}
+                      />
+                      <span style={{
+                        fontFamily: "'Syne', sans-serif", fontWeight: 600, fontSize: "13px",
+                        color: isChecked ? colors.color : "#718096"
+                      }}>
+                        {type}
+                      </span>
+                    </label>
+                  );
+                })}
               </div>
-            ))}
+            </div>
+
+            {/* Price */}
+            <div style={{ marginBottom: "14px" }}>
+              <label style={{ fontSize: "13px", fontFamily: "'Syne', sans-serif", fontWeight: 600, color: "#4A5568", display: "block", marginBottom: "6px" }}>Price per kg (₹) *</label>
+              <input type="number" value={form.price} onChange={e => setForm(fm => ({ ...fm, price: e.target.value }))} placeholder="e.g., 450" className="input-field" />
+            </div>
+
+            {/* Stock */}
+            <div style={{ marginBottom: "14px" }}>
+              <label style={{ fontSize: "13px", fontFamily: "'Syne', sans-serif", fontWeight: 600, color: "#4A5568", display: "block", marginBottom: "6px" }}>Available stock (kg) *</label>
+              <input type="number" value={form.stock} onChange={e => setForm(fm => ({ ...fm, stock: e.target.value }))} placeholder="e.g., 20" className="input-field" />
+            </div>
+
+            {/* Description */}
+            <div style={{ marginBottom: "14px" }}>
+              <label style={{ fontSize: "13px", fontFamily: "'Syne', sans-serif", fontWeight: 600, color: "#4A5568", display: "block", marginBottom: "6px" }}>Description</label>
+              <textarea value={form.description} onChange={e => setForm(fm => ({ ...fm, description: e.target.value }))} rows={3} placeholder="Fresh catch description..." className="input-field" style={{ resize: "none" }} />
+            </div>
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "14px" }}>
               <div>
@@ -223,13 +287,22 @@ export default function SellerDashboard() {
                 <div style={{ flex: 1 }}>
                   <p style={{ fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: "14px", color: "#0A3D62" }}>{f.name}</p>
                   <p style={{ fontSize: "12px", color: "#718096" }}>₹{f.price}/kg • {f.stock}kg left</p>
-                  <div style={{ display: "flex", gap: "6px", marginTop: "6px" }}>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginTop: "6px" }}>
                     <span style={{ background: "#E8FFF3", color: "#1A7A4C", padding: "2px 8px", borderRadius: "6px", fontSize: "11px", fontFamily: "'Syne', sans-serif", fontWeight: 600 }}>
                       {f.freshness}% fresh
                     </span>
                     <span style={{ background: "#E8F9FF", color: "#0A3D62", padding: "2px 8px", borderRadius: "6px", fontSize: "11px", fontFamily: "'Syne', sans-serif", fontWeight: 600 }}>
                       {f.category}
                     </span>
+                    {/* Fish Type Badges */}
+                    {Array.isArray(f.fishTypes) && f.fishTypes.map(type => {
+                      const colors = fishTypeBadgeColors[type] || { bg: "#F0F4F8", color: "#4A5568" };
+                      return (
+                        <span key={type} style={{ background: colors.bg, color: colors.color, padding: "2px 8px", borderRadius: "6px", fontSize: "11px", fontFamily: "'Syne', sans-serif", fontWeight: 600 }}>
+                          {type}
+                        </span>
+                      );
+                    })}
                   </div>
                 </div>
               </div>

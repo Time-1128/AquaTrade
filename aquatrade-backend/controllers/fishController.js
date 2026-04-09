@@ -18,7 +18,18 @@ const getFish = async (req, res) => {
 
     const fish = await getAllFish();
 
-    res.json(fish);
+    const parsedFish = fish.map((item) => {
+      if (item.fishTypes && typeof item.fishTypes === "string") {
+        try {
+          return { ...item, fishTypes: JSON.parse(item.fishTypes) };
+        } catch {
+          return { ...item, fishTypes: [item.fishTypes] };
+        }
+      }
+      return item;
+    });
+
+    res.json(parsedFish);
 
   } catch (err) {
 
@@ -43,7 +54,18 @@ const createFish = async (req, res) => {
 
     const basePrice = Number(req.body.price || 0);
     const stock = Number(req.body.stock || 0);
-    const freshness = Number(req.body.freshness || 90);
+    const catchDateTime = req.body.catchDateTime || null;
+
+    // Calculate freshness based on catch time
+    let freshness = 90; // default freshness
+    if (catchDateTime) {
+      const catchTime = new Date(catchDateTime);
+      const now = new Date();
+      const hoursSinceCatch = (now - catchTime) / (1000 * 60 * 60);
+
+      // Freshness decreases over time (max 100% for very fresh, min 50% for very old)
+      freshness = Math.max(50, 100 - (hoursSinceCatch * 2));
+    }
 
     const aiPrice = predictPrice(
       basePrice,
@@ -64,9 +86,27 @@ const createFish = async (req, res) => {
       imagePath = `uploads/${req.file.filename}`;
     }
 
+    /* FISH TYPES — parse array sent as JSON string from frontend */
+
+    let fishTypes = [];
+
+    if (req.body.fishTypes) {
+      try {
+        fishTypes = JSON.parse(req.body.fishTypes);
+      } catch {
+        fishTypes = Array.isArray(req.body.fishTypes)
+          ? req.body.fishTypes
+          : [req.body.fishTypes];
+      }
+    }
+
+    const sellerAddress = req.body.address || "";
+
     const newFish = {
 
       name: req.body.name,
+
+      fishTypes: fishTypes,
 
       price: aiPrice,
 
@@ -78,7 +118,17 @@ const createFish = async (req, res) => {
 
       freshness: freshness,
 
+      catchDateTime: catchDateTime,
+
       description: req.body.description || "",
+
+      location: {
+        address: sellerAddress
+      },
+
+      address: sellerAddress,
+
+      sellerAddress: sellerAddress,
 
       rating: req.body.rating || 4.5,
 
@@ -110,7 +160,15 @@ const createFish = async (req, res) => {
 
       aiPrice: aiPrice,
 
-      aiDiscount: aiDiscount
+      aiDiscount: aiDiscount,
+
+      fishTypes: fishTypes,
+
+      address: sellerAddress,
+
+      sellerAddress: sellerAddress,
+
+      location: { address: sellerAddress }
 
     });
 

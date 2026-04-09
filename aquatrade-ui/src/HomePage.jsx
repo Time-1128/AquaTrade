@@ -131,6 +131,11 @@ export default function HomePage() {
     if (filters.category !== "All" && f.category !== filters.category)
       return false;
 
+    if (filters.fishType !== "All") {
+      const fishTypes = Array.isArray(f.fishTypes) ? f.fishTypes : [];
+      if (!fishTypes.includes(filters.fishType)) return false;
+    }
+
     if (price < filters.priceRange[0] || price > filters.priceRange[1])
       return false;
 
@@ -140,6 +145,22 @@ export default function HomePage() {
     return true;
 
   });
+
+  const sorted = [...filtered];
+
+  switch (filters.sortBy) {
+    case "priceLowHigh":
+      sorted.sort((a, b) => Number(a.price || 0) - Number(b.price || 0));
+      break;
+    case "priceHighLow":
+      sorted.sort((a, b) => Number(b.price || 0) - Number(a.price || 0));
+      break;
+    case "ratingHighLow":
+      sorted.sort((a, b) => Number(b.rating || 0) - Number(a.rating || 0));
+      break;
+    default:
+      break;
+  }
 
   /* ==========================
      ADD TO CART
@@ -326,7 +347,7 @@ export default function HomePage() {
   }}
 >
 
-        {filtered.length === 0 ? (
+        {sorted.length === 0 ? (
 
           <div style={{ textAlign: "center", padding: "60px" }}>
             No fish available
@@ -342,7 +363,7 @@ export default function HomePage() {
             }}
           >
 
-            {filtered.map((f) => (
+            {sorted.map((f) => (
 
               <FishCard
                 key={f.id}
