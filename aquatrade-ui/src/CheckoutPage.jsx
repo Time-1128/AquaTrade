@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { useApp } from "./context/AppContext";
+import { db, auth } from "./firebase.config";
+import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 
 export default function CheckoutPage() {
 
@@ -27,26 +29,31 @@ export default function CheckoutPage() {
     setLoading(true);
 
     try {
+      const currentUser = auth.currentUser;
+      const orderId = "TKN" + Date.now();
 
-      for (let item of cart) {
+      const orderData = {
+        userId: currentUser?.uid || user?.uid,
+        orderId,
+        items: cart.map(item => ({
+          id: item.id,
+          name: item.name,
+          price: item.price,
+          quantity: item.qty,
+          seller: item.sellerName || "Direct Seller"
+        })),
+        total: tokenAmount,
+        fullTotal: total,
+        status: "Confirmed",
+        paymentMethod: payMethod,
+        address,
+        createdAt: serverTimestamp(),
+      };
 
-        await fetch("http://localhost:5000/api/orders/book", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            user_id: user?.id || 1,
-            fish_id: item.id,
-            quantity: item.qty,
-            pickup_time: "Today Evening"
-          })
-        });
-
-      }
+      await addDoc(collection(db, "orders"), orderData);
 
       const order = {
-        id: "TKN" + Date.now(),
+        id: orderId,
         items: [...cart],
         total: tokenAmount,
         status: "Confirmed",
@@ -62,7 +69,8 @@ export default function CheckoutPage() {
 
     } catch (err) {
 
-      console.error(err);
+      console.error("Order placement error:", err);
+      alert("Failed to place order. " + err.message);
 
     }
 

@@ -5,6 +5,7 @@ import HomePage from "./HomePage";
 import ProductDetailPage from "./ProductDetailPage";
 import CartPage from "./CartPage";
 import ProfilePage from "./ProfilePage";
+import ProfileSetup from "./ProfileSetup";   // ← NEW
 import SellerDashboard from "./SellerDashboard";
 import CheckoutPage from "./CheckoutPage";
 
@@ -22,6 +23,9 @@ function AppRouter() {
 
     case "login":
       return <LoginPage />;
+
+    case "profileSetup":          // ← NEW — shown after first login
+      return <ProfileSetup />;
 
     case "roleSelect":
       return <RoleSelectPage />;

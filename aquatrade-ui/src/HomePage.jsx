@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useApp } from "./context/AppContext";
+import { db } from "./firebase.config";
+import { collection, getDocs } from "firebase/firestore";
 import FishCard from "./components/FishCard";
 import FilterPanel from "./components/FilterPanel";
 import BottomNav from "./components/BottomNav";
@@ -13,6 +15,7 @@ export default function HomePage() {
   const [showFilters, setShowFilters] = useState(false);
   const [listening, setListening] = useState(false);
   const [toast, setToast] = useState("");
+  const [loading, setLoading] = useState(true);
 
   const searchRef = useRef(null);
 
@@ -22,39 +25,31 @@ export default function HomePage() {
   };
 
   /* ==========================
-     FETCH FISH
+     FETCH FISH FROM FIRESTORE
   ========================== */
 
   const fetchFish = async () => {
-
+    setLoading(true);
     try {
+      const productsRef = collection(db, "products");
+      const querySnapshot = await getDocs(productsRef);
 
-      const res = await fetch("http://localhost:5000/api/fish");
-
-      if (!res.ok) {
-        throw new Error("Server error");
-      }
-
-      const data = await res.json();
-
-      if (!Array.isArray(data)) {
-        console.warn("Fish API returned non-array:", data);
-        dispatch({ type: "SET_FISH", payload: [] });
-        return;
-      }
+      const fishData = querySnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
 
       dispatch({
         type: "SET_FISH",
-        payload: data
+        payload: fishData || [],
       });
-
     } catch (err) {
-
-      console.error("Fish fetch error:", err);
-      showToast("Failed to load fish");
-
+      console.error("Firestore fetch error:", err);
+      showToast("Failed to load fish. Check Firestore.");
+      dispatch({ type: "SET_FISH", payload: [] });
+    } finally {
+      setLoading(false);
     }
-
   };
 
   useEffect(() => {
@@ -347,7 +342,9 @@ export default function HomePage() {
   }}
 >
 
-        {sorted.length === 0 ? (
+        {loading ? (
+          <div style={{ textAlign: "center", padding: "40px" }}>Loading...</div>
+        ) : sorted.length === 0 ? (
 
           <div style={{ textAlign: "center", padding: "60px" }}>
             No fish available

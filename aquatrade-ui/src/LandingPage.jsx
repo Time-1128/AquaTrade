@@ -6,16 +6,11 @@ export default function LandingPage() {
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    const timer1 = setTimeout(() => setLoaded(true), 200);
-    const timer2 = setTimeout(() => {
-      dispatch({ type: "SET_PAGE", payload: "login" });
-    }, 3500);
-
-    return () => {
-      clearTimeout(timer1);
-      clearTimeout(timer2);
-    };
-  }, [dispatch]);
+  const timer = setTimeout(() => setLoaded(true), 200);
+  return () => clearTimeout(timer);
+  // ── REMOVED the timer that forced SET_PAGE:"login" ──
+  // onAuthStateChanged in AppContext now handles all routing
+}, [dispatch]);
 
   return (
     <div

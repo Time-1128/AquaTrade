@@ -5,7 +5,7 @@ export default function LoginPage() {
   const { dispatch } = useApp();
   const [step, setStep] = useState("phone"); // phone | otp
   const [phone, setPhone] = useState("");
-  const [otp, setOtp] = useState(["", "", "", ""]);
+  const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [location, setLocation] = useState(null);
@@ -24,7 +24,7 @@ export default function LoginPage() {
 
   const verifyOTP = () => {
     const code = otp.join("");
-    if (code.length !== 4) { setError("Enter the 4-digit OTP"); return; }
+    if (code.length !== 6) { setError("Enter the 6-digit OTP"); return; }
     setError("");
     setLoading(true);
     setTimeout(() => {
@@ -39,7 +39,7 @@ export default function LoginPage() {
     const next = [...otp];
     next[i] = val;
     setOtp(next);
-    if (val && i < 3) document.getElementById(`otp-${i + 1}`)?.focus();
+    if (val && i < 5) document.getElementById(`otp-${i + 1}`)?.focus();
   };
 
   return (
@@ -119,7 +119,7 @@ export default function LoginPage() {
                 padding: "8px 14px", fontSize: "13px", color: "#0A3D62", marginBottom: "24px",
                 fontFamily: "'Syne', sans-serif", fontWeight: 600
               }}>
-                🔐 Demo OTP: Use any 4 digits
+                🔐 Demo OTP: Use any 6 digits
               </p>
 
               <div style={{ display: "flex", gap: "12px", marginBottom: "20px", justifyContent: "center" }}>

@@ -1,5 +1,8 @@
 import { useState } from "react";
 import { useApp } from "./context/AppContext";
+import { auth, db } from "./firebase.config";
+import { doc, updateDoc } from "firebase/firestore";
+import { signOut } from "firebase/auth";   // ← add this
 import BottomNav from "./components/BottomNav";
 
 export default function ProfilePage() {
@@ -27,23 +30,26 @@ const stats = [
 { label: "Saved", value: "₹" + (orders?.length || 0) * 80, icon: "💰" }
 ];
 
-const logout = () => {
-dispatch({ type: "SET_USER", payload: null });
-dispatch({ type: "SET_PAGE", payload: "login" });
+const logout = async () => {
+  try {
+    await signOut(auth);
+  } catch (err) {
+    console.error("Logout error:", err);
+  }
+  dispatch({ type: "LOGOUT" });
 };
 
 const saveProfile = async () => {
 
-
 try {
+  const currentUser = auth.currentUser;
+  if (!currentUser) {
+    alert("Please log in first");
+    return;
+  }
 
-  await fetch(`http://localhost:5000/api/users/${user.id}`, {
-    method: "PUT",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify(form)
-  });
+  const userDocRef = doc(db, "users", currentUser.uid);
+  await updateDoc(userDocRef, form);
 
   dispatch({
     type: "SET_USER",
@@ -51,13 +57,12 @@ try {
   });
 
   setEditing(false);
+  alert("Profile updated successfully!");
 
 } catch (err) {
-
   console.error("Profile update failed:", err);
-
+  alert("Failed to update profile: " + err.message);
 }
-
 
 };
 
