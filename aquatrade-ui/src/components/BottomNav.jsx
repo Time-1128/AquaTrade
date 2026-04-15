@@ -16,7 +16,7 @@ export default function BottomNav() {
 
     { icon: "🏠", label: "Home", page: "home" },
 
-    { icon: "🔍", label: "Explore", page: "explore" },
+    { icon: "📦", label: "Orders", page: "orders" },
 
     { icon: "🛒", label: "Cart", page: "cart", badge: cartCount },
 
@@ -36,7 +36,7 @@ export default function BottomNav() {
           onClick={() =>
             dispatch({
               type: "SET_PAGE",
-              payload: item.page === "explore" ? "home" : item.page
+              payload: item.page
             })
           }
           style={{

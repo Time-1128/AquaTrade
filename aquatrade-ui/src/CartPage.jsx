@@ -498,9 +498,17 @@ export default function CartPage() {
             <button
               className="btn-primary"
               style={{ fontSize: "16px", padding: "16px" }}
-              onClick={() =>
-                dispatch({ type: "SET_PAGE", payload: "checkout" })
-              }
+              onClick={() => {
+                const sellerPickupAddress =
+                  cart.find((item) => item.address || item.sellerAddress)?.address ||
+                  cart.find((item) => item.address || item.sellerAddress)?.sellerAddress ||
+                  "";
+                dispatch({
+                  type: "SET_CHECKOUT_PICKUP_ADDRESS",
+                  payload: sellerPickupAddress,
+                });
+                dispatch({ type: "SET_PAGE", payload: "checkout" });
+              }}
             >
               Proceed to Token Booking – ₹{grand} →
             </button>

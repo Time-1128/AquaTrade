@@ -1,37 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useApp } from "./context/AppContext";
 import Toast from "./components/Toast";
-
-/* ===============================
-   AI PRICE PREDICTION
-================================ */
-
-function predictPrice(fish) {
-  if (!fish) return 0;
-
-  let base = fish.price;
-
-  const freshnessMultiplier =
-    fish.freshness >= 90 ? 1.0 : fish.freshness >= 75 ? 0.92 : 0.8;
-
-  const demandRandom = 0.95 + Math.random() * 0.1;
-
-  const stockPressure =
-    fish.stock <= 5 ? 1.1 : fish.stock >= 20 ? 0.95 : 1.0;
-
-  const hour = new Date().getHours();
-
-  const timeFactor =
-    hour >= 6 && hour <= 10
-      ? 1.05
-      : hour >= 17 && hour <= 20
-      ? 1.08
-      : 1.0;
-
-  return Math.round(
-    base * freshnessMultiplier * demandRandom * stockPressure * timeFactor
-  );
-}
 
 export default function ProductDetailPage() {
 
@@ -40,10 +9,8 @@ export default function ProductDetailPage() {
 
   const [qty, setQty] = useState(1);
   const [toast, setToast] = useState("");
-  const [aiPrice, setAiPrice] = useState(0);
   const [activeTab, setActiveTab] = useState("details");
-  const [rating, setRating] = useState(0);
-  const [showRateModal, setShowRateModal] = useState(false);
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
 
   useEffect(() => {
 
@@ -51,30 +18,9 @@ export default function ProductDetailPage() {
       dispatch({ type: "SET_PAGE", payload: "home" });
       return;
     }
-
-    setAiPrice(predictPrice(fish));
-
   }, [fish, dispatch]);
 
   if (!fish) return null;
-
-  /* ===============================
-     FRESHNESS LABELS
-  ================================ */
-
-  const freshnessColor =
-    fish.freshness >= 90
-      ? "#2ECC71"
-      : fish.freshness >= 75
-      ? "#F6C90E"
-      : "#E74C3C";
-
-  const freshnessLabel =
-    fish.freshness >= 90
-      ? "Very Fresh"
-      : fish.freshness >= 75
-      ? "Fresh"
-      : "Moderate";
 
   /* ===============================
      TOAST
@@ -127,29 +73,22 @@ export default function ProductDetailPage() {
 
   };
 
-  /* ===============================
-     ORDER COUNT SAFE
-  ================================ */
+  const normalizedImages = useMemo(() => {
+    const source = Array.isArray(fish.images) && fish.images.length
+      ? fish.images
+      : fish.image && fish.image !== "🐟"
+      ? [fish.image]
+      : [];
+    return source
+      .map((image) =>
+        image.startsWith("http") || image.startsWith("data:image")
+          ? image
+          : `http://localhost:5000/${image}`
+      )
+      .slice(0, 5);
+  }, [fish.image, fish.images]);
 
-  const orderCount = state.orders?.length || 0;
-
-  const discountPercent =
-    orderCount < 3 ? 20 : fish.discount || 0;
-
-  const finalPrice = Math.round(
-    aiPrice * (1 - discountPercent / 100)
-  );
-
-  /* ===============================
-     IMAGE FIX
-  ================================ */
-
-  const imageUrl =
-    fish.image && fish.image !== "🐟" && fish.image !== "?"
-      ? fish.image.startsWith("http")
-        ? fish.image
-        : `http://localhost:5000/${fish.image}`
-      : null;
+  const displayPrice = Number(fish.price || 0);
 
   return (
 
@@ -227,9 +166,9 @@ export default function ProductDetailPage() {
           }}
         >
 
-          {imageUrl ? (
+          {normalizedImages.length > 0 ? (
             <img
-              src={imageUrl}
+              src={normalizedImages[activeImageIndex]}
               alt={fish.name}
               style={{
                 width: "160px",
@@ -241,6 +180,37 @@ export default function ProductDetailPage() {
             />
           ) : (
             <div style={{ fontSize: "100px" }}>{fish.image}</div>
+          )}
+
+          {normalizedImages.length > 1 && (
+            <div
+              style={{
+                marginTop: "8px",
+                display: "flex",
+                justifyContent: "center",
+                gap: "6px",
+                flexWrap: "wrap",
+              }}
+            >
+              {normalizedImages.map((image, index) => (
+                <button
+                  key={`${image}-${index}`}
+                  type="button"
+                  onClick={() => setActiveImageIndex(index)}
+                  style={{
+                    border: activeImageIndex === index ? "2px solid #0F4C75" : "1px solid #D1D5DB",
+                    borderRadius: "8px",
+                    overflow: "hidden",
+                    padding: 0,
+                    width: "44px",
+                    height: "44px",
+                    cursor: "pointer",
+                  }}
+                >
+                  <img src={image} alt={`preview-${index}`} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                </button>
+              ))}
+            </div>
           )}
 
           <h1
@@ -265,7 +235,7 @@ export default function ProductDetailPage() {
         <div
           style={{
             margin: "16px",
-            background: "linear-gradient(135deg,#0A3D62,#00B4D8)",
+            background: "linear-gradient(135deg,#0F4C75,#1D6FA8)",
             borderRadius: "20px",
             padding: "16px",
             color: "white"
@@ -273,7 +243,7 @@ export default function ProductDetailPage() {
         >
 
           <p style={{ fontSize: "12px", opacity: 0.8 }}>
-            🤖 AI Dynamic Price
+            Seller Price
           </p>
 
           <h2
@@ -283,21 +253,15 @@ export default function ProductDetailPage() {
               fontWeight: 800
             }}
           >
-            ₹{finalPrice}/kg
+            ₹{displayPrice}/kg
           </h2>
-
-          {orderCount < 3 && (
-            <p style={{ fontSize: "12px", color: "#90E0EF" }}>
-              🎁 First order 20% applied
-            </p>
-          )}
 
         </div>
 
         {/* TABS */}
 
         <div style={{ display: "flex", padding: "0 16px" }}>
-          {["details", "seller", "reviews"].map((t) => (
+          {["details", "seller"].map((t) => (
             <button
               key={t}
               onClick={() => setActiveTab(t)}
@@ -345,28 +309,39 @@ export default function ProductDetailPage() {
 
           {activeTab === "seller" && (
             <>
-              <p>🎣 Seller: {fish.sellerName}</p>
+              <p>🏬 Shop: {fish.sellerShopName || "AquaTrade Seller"}</p>
+              <p>🎣 Seller: {fish.sellerName || "Seller"}</p>
+              <p>📞 Phone: {fish.sellerPhone || "Not provided"}</p>
               <p>
                 📍 {fish.location?.address || fish.address || fish.sellerAddress || "Location unavailable"}
               </p>
 
+              <div style={{ display: "flex", gap: "8px", marginTop: "10px" }}>
+                <button
+                  onClick={openMaps}
+                  className="btn-secondary"
+                  disabled={!(fish.location?.address || fish.address || fish.sellerAddress || (fish.location?.lat && fish.location?.lng))}
+                  style={{ flex: 1 }}
+                >
+                  View on Maps
+                </button>
+                <button
+                  onClick={() => {
+                    if (!fish.sellerPhone) return;
+                    window.location.href = `tel:${fish.sellerPhone}`;
+                  }}
+                  className="btn-primary"
+                  disabled={!fish.sellerPhone}
+                  style={{ flex: 1, background: fish.sellerPhone ? "#2ECC71" : "#9CA3AF" }}
+                >
+                  Call Seller
+                </button>
+              </div>
               <button
-                onClick={openMaps}
-                className="btn-secondary"
-                disabled={!(fish.location?.address || fish.address || fish.sellerAddress || (fish.location?.lat && fish.location?.lng))}
+                type="button"
+                style={{ marginTop: "8px", width: "100%", border: "1px dashed #94A3B8", borderRadius: "10px", padding: "10px", background: "#F8FAFC", color: "#64748B" }}
               >
-                View on Maps
-              </button>
-            </>
-          )}
-
-          {activeTab === "reviews" && (
-            <>
-              <button
-                onClick={() => setShowRateModal(true)}
-                className="btn-secondary"
-              >
-                Rate this fish
+                Chat with Seller (Coming Soon)
               </button>
             </>
           )}
@@ -409,7 +384,7 @@ export default function ProductDetailPage() {
           className="btn-primary"
           style={{ flex: 1 }}
         >
-          Add {qty}kg – ₹{finalPrice * qty}
+          Add {qty}kg – ₹{displayPrice * qty}
         </button>
 
       </div>

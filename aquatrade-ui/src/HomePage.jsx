@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useApp } from "./context/AppContext";
 import { db } from "./firebase.config";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, doc, getDocs, updateDoc } from "firebase/firestore";
 import FishCard from "./components/FishCard";
 import FilterPanel from "./components/FilterPanel";
 import BottomNav from "./components/BottomNav";
@@ -10,12 +10,15 @@ import Toast from "./components/Toast";
 export default function HomePage() {
 
   const { state, dispatch } = useApp();
-  const { fish, searchQuery, filters, activeTab, cart } = state;
+  const { fish, searchQuery, filters, cart, user } = state;
 
   const [showFilters, setShowFilters] = useState(false);
   const [listening, setListening] = useState(false);
   const [toast, setToast] = useState("");
   const [loading, setLoading] = useState(true);
+  const [buyerLocation, setBuyerLocation] = useState(null);
+  const [showTokenModal, setShowTokenModal] = useState(false);
+  const [claimingTokens, setClaimingTokens] = useState(false);
 
   const searchRef = useRef(null);
 
@@ -28,7 +31,7 @@ export default function HomePage() {
      FETCH FISH FROM FIRESTORE
   ========================== */
 
-  const fetchFish = async () => {
+  const fetchFish = useCallback(async () => {
     setLoading(true);
     try {
       const productsRef = collection(db, "products");
@@ -50,11 +53,81 @@ export default function HomePage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [dispatch]);
 
   useEffect(() => {
     fetchFish();
-  }, []);
+  }, [fetchFish]);
+
+  useEffect(() => {
+    const profileLocation = user?.location;
+    if (
+      profileLocation &&
+      typeof profileLocation.lat === "number" &&
+      typeof profileLocation.lng === "number"
+    ) {
+      setBuyerLocation(profileLocation);
+      localStorage.setItem("aquatradeBuyerLocation", JSON.stringify(profileLocation));
+      return;
+    }
+
+    const cached = localStorage.getItem("aquatradeBuyerLocation");
+    if (cached) {
+      try {
+        const parsed = JSON.parse(cached);
+        if (typeof parsed?.lat === "number" && typeof parsed?.lng === "number") {
+          setBuyerLocation(parsed);
+          return;
+        }
+      } catch (error) {
+        console.error("Failed to parse cached buyer location", error);
+      }
+    }
+
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const fallbackLocation = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          };
+          setBuyerLocation(fallbackLocation);
+          localStorage.setItem("aquatradeBuyerLocation", JSON.stringify(fallbackLocation));
+        },
+        () => {}
+      );
+    }
+  }, [user?.location]);
+
+  useEffect(() => {
+    if (user?.role === "buyer" && user?.tokenRewardClaimed !== true) {
+      setShowTokenModal(true);
+    }
+  }, [user?.role, user?.tokenRewardClaimed]);
+
+  const claimWelcomeTokens = async () => {
+    if (!user?.uid) return;
+    setClaimingTokens(true);
+    try {
+      const currentTokens = Number(user?.tokens || 0);
+      const nextTokens = currentTokens > 0 ? currentTokens : 3;
+      await updateDoc(doc(db, "users", user.uid), {
+        tokens: nextTokens,
+        tokenRewardClaimed: true,
+      });
+      dispatch({
+        type: "SET_USER",
+        payload: { ...user, tokens: nextTokens, tokenRewardClaimed: true },
+      });
+      setShowTokenModal(false);
+      showToast("3 free tokens added to your account");
+    } catch (error) {
+      console.error("Token claim failed:", error);
+      showToast("Unable to claim tokens now");
+    } finally {
+      setClaimingTokens(false);
+    }
+  };
 
   /* ==========================
      VOICE SEARCH
@@ -105,7 +178,122 @@ export default function HomePage() {
      FILTER LOGIC
   ========================== */
 
-  const filtered = (Array.isArray(fish) ? fish : []).filter((f) => {
+  const hasOption = (value, list = []) => list.includes(value);
+
+  const normalizedFishType = (fishItem) => {
+    const raw = (fishItem.type || fishItem.fishType || fishItem.category || "").toLowerCase();
+    if (raw.includes("salt") || raw.includes("sea")) return "Sea";
+    if (raw.includes("fresh")) return "Freshwater";
+    if (raw.includes("canal") || raw.includes("lake") || raw.includes("river")) return "Canal/Lake";
+    return "";
+  };
+
+  const inAnyPriceRange = (price, ranges) => {
+    if (!ranges.length) return true;
+    return ranges.some((range) => {
+      switch (range) {
+        case "lt1000":
+          return price < 1000;
+        case "1000-2000":
+          return price >= 1000 && price <= 2000;
+        case "2000-5000":
+          return price > 2000 && price <= 5000;
+        case "5000-10000":
+          return price > 5000 && price <= 10000;
+        case "gt10000":
+          return price > 10000;
+        default:
+          return true;
+      }
+    });
+  };
+
+  const inAnyDiscountRange = (discount, ranges) => {
+    if (!ranges.length) return true;
+    return ranges.some((range) => {
+      switch (range) {
+        case "upto5":
+          return discount <= 5;
+        case "upto15":
+          return discount <= 15;
+        case "upto20":
+          return discount <= 20;
+        case "upto30":
+          return discount <= 30;
+        case "gt30":
+          return discount > 30;
+        default:
+          return true;
+      }
+    });
+  };
+
+  const toRadians = (value) => (value * Math.PI) / 180;
+
+  const calculateDistanceKm = (from, to) => {
+    const earthRadiusKm = 6371;
+    const dLat = toRadians(to.lat - from.lat);
+    const dLng = toRadians(to.lng - from.lng);
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(toRadians(from.lat)) *
+        Math.cos(toRadians(to.lat)) *
+        Math.sin(dLng / 2) *
+        Math.sin(dLng / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return Number((earthRadiusKm * c).toFixed(1));
+  };
+
+  const parseSellerLocation = (item) => {
+    if (
+      item?.location &&
+      typeof item.location.lat === "number" &&
+      typeof item.location.lng === "number"
+    ) {
+      return { lat: item.location.lat, lng: item.location.lng };
+    }
+    if (typeof item?.lat === "number" && typeof item?.lng === "number") {
+      return { lat: item.lat, lng: item.lng };
+    }
+    return null;
+  };
+
+  const withDistance = useMemo(() => {
+    const list = Array.isArray(fish) ? fish : [];
+    return list.map((item) => {
+      const sellerLocation = parseSellerLocation(item);
+      if (!buyerLocation || !sellerLocation) {
+        return { ...item, distanceKm: null };
+      }
+      return {
+        ...item,
+        distanceKm: calculateDistanceKm(buyerLocation, sellerLocation),
+      };
+    });
+  }, [fish, buyerLocation]);
+
+  const matchesDistanceRange = (distanceKm, ranges = []) => {
+    if (!ranges.length) return true;
+    if (typeof distanceKm !== "number") return false;
+    return ranges.some((range) => {
+      switch (range) {
+        case "within1":
+          return distanceKm <= 1;
+        case "within5":
+          return distanceKm <= 5;
+        case "within10":
+          return distanceKm <= 10;
+        case "within20":
+          return distanceKm <= 20;
+        case "more20":
+          return distanceKm > 20;
+        default:
+          return true;
+      }
+    });
+  };
+
+  const filtered = withDistance.filter((f) => {
 
     if (!f) return false;
 
@@ -123,19 +311,21 @@ export default function HomePage() {
 
     }
 
-    if (filters.category !== "All" && f.category !== filters.category)
-      return false;
+    const fishType = normalizedFishType(f);
+    if (filters.fishTypes?.length && !hasOption(fishType, filters.fishTypes)) return false;
+    if (!inAnyPriceRange(price, filters.priceRanges || [])) return false;
 
-    if (filters.fishType !== "All") {
-      const fishTypes = Array.isArray(f.fishTypes) ? f.fishTypes : [];
-      if (!fishTypes.includes(filters.fishType)) return false;
+    const discount = Number(f.discount || 0);
+    if (!inAnyDiscountRange(discount, filters.discounts || [])) return false;
+
+    if (filters.ratings?.length) {
+      const minSelectedRating = Math.min(...filters.ratings);
+      if (rating < minSelectedRating) return false;
     }
 
-    if (price < filters.priceRange[0] || price > filters.priceRange[1])
+    if (!matchesDistanceRange(f.distanceKm, filters.distanceRanges || [])) {
       return false;
-
-    if (rating < filters.minRating)
-      return false;
+    }
 
     return true;
 
@@ -150,8 +340,12 @@ export default function HomePage() {
     case "priceHighLow":
       sorted.sort((a, b) => Number(b.price || 0) - Number(a.price || 0));
       break;
-    case "ratingHighLow":
-      sorted.sort((a, b) => Number(b.rating || 0) - Number(a.rating || 0));
+    case "nearestFirst":
+      sorted.sort((a, b) => {
+        const distanceA = typeof a.distanceKm === "number" ? a.distanceKm : Number.MAX_SAFE_INTEGER;
+        const distanceB = typeof b.distanceKm === "number" ? b.distanceKm : Number.MAX_SAFE_INTEGER;
+        return distanceA - distanceB;
+      });
       break;
     default:
       break;
@@ -196,8 +390,8 @@ export default function HomePage() {
 
       <div
         style={{
-          background: "linear-gradient(135deg,#0A3D62,#1A5276)",
-          padding: "16px 20px 0",
+          background: "linear-gradient(to right, #0F4C75, #1B6CA8)",
+          padding: "14px 16px 0",
           position: "sticky",
           top: 0,
           zIndex: 100
@@ -212,11 +406,26 @@ export default function HomePage() {
           }}
         >
 
-          <div>
-            📍 Marina Beach Area
-            <p style={{ fontSize: "11px", color: "rgba(255,255,255,0.6)" }}>
-              Chennai
-            </p>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <span style={{ fontSize: "24px", color: "#FFFFFF" }}>🐟</span>
+            <div>
+              <h1
+                style={{
+                  fontFamily: "'Inter', sans-serif",
+                  fontSize: "23px",
+                  fontWeight: 700,
+                  letterSpacing: "0.3px",
+                  color: "#FFFFFF",
+                  lineHeight: 1.1,
+                  margin: 0,
+                }}
+              >
+                AquaTrade
+              </h1>
+              <p style={{ fontSize: "13px", color: "#D1E9F6" }}>
+                Fresh catches from trusted sellers
+              </p>
+            </div>
           </div>
 
           <div style={{ position: "relative" }}>
@@ -305,23 +514,34 @@ export default function HomePage() {
 
             <button
               onClick={() => setShowFilters(true)}
-              style={{ border: "none", background: "none", cursor: "pointer" }}
+              style={{
+                border: "none",
+                background: "#E6F7FE",
+                borderRadius: "10px",
+                cursor: "pointer",
+                width: "36px",
+                height: "36px",
+                color: "#0A3D62",
+                fontSize: "18px",
+                marginRight: "6px",
+              }}
             >
-              ⚙️
+              ☰
             </button>
 
             <button
               onClick={startVoice}
               style={{
-                background: "#00B4D8",
+                background: listening ? "#2ECC71" : "#00B4D8",
                 border: "none",
                 borderRadius: "10px",
                 padding: "8px 12px",
                 color: "white",
                 cursor: "pointer"
               }}
+              title={listening ? "Listening..." : "Voice Search"}
             >
-              🎤
+              {listening ? "🎙️" : "🎤"}
             </button>
 
           </div>
@@ -341,6 +561,19 @@ export default function HomePage() {
     paddingBottom: "80px"
   }}
 >
+
+        <div
+          style={{
+            marginBottom: "12px",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          <p style={{ color: "#0A3D62", fontWeight: 700 }}>
+            {sorted.length} result{sorted.length === 1 ? "" : "s"} found
+          </p>
+        </div>
 
         {loading ? (
           <div style={{ textAlign: "center", padding: "40px" }}>Loading...</div>
@@ -383,6 +616,49 @@ export default function HomePage() {
       <BottomNav />
 
       {toast && <Toast message={toast} />}
+
+      {showTokenModal && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.45)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "16px",
+            zIndex: 900,
+            animation: "fadeIn 0.25s ease",
+          }}
+        >
+          <div
+            style={{
+              width: "100%",
+              maxWidth: "360px",
+              background: "white",
+              borderRadius: "16px",
+              padding: "18px",
+              boxShadow: "0 20px 40px rgba(0,0,0,0.2)",
+              animation: "slideUp 0.3s ease",
+            }}
+          >
+            <h3 style={{ color: "#0F4C75", fontSize: "20px", fontWeight: 800 }}>
+              🎉 Welcome to AquaTrade!
+            </h3>
+            <p style={{ marginTop: "8px", color: "#6B7280", fontSize: "14px" }}>
+              You received 3 free tokens
+            </p>
+            <button
+              className="btn-primary"
+              style={{ marginTop: "14px" }}
+              onClick={claimWelcomeTokens}
+              disabled={claimingTokens}
+            >
+              {claimingTokens ? "Claiming..." : "Claim Now"}
+            </button>
+          </div>
+        </div>
+      )}
 
     </div>
 

@@ -1,23 +1,39 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useApp } from "./context/AppContext";
 import { db, auth } from "./firebase.config";
-import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { addDoc, collection, serverTimestamp, doc, updateDoc, increment } from "firebase/firestore";
 
 export default function CheckoutPage() {
 
   const { state, dispatch } = useApp();
-  const { cart, orders, user } = state;
+  const { cart, user, checkoutPickupAddress } = state;
 
   const [step, setStep] = useState("address");
-  const [address, setAddress] = useState("12, Marina Beach Rd, Chennai");
-  const [payMethod, setPayMethod] = useState("upi");
+  const sellerAddressFromCart = useMemo(
+    () =>
+      checkoutPickupAddress ||
+      cart.find((item) => item.address || item.sellerAddress)?.address ||
+      cart.find((item) => item.address || item.sellerAddress)?.sellerAddress ||
+      user?.address ||
+      "",
+    [checkoutPickupAddress, cart, user?.address]
+  );
+
+  const [address, setAddress] = useState(sellerAddressFromCart);
+  const [payMethod] = useState("upi");
   const [loading, setLoading] = useState(false);
+  const [useToken, setUseToken] = useState(false);
+
+  useEffect(() => {
+    setAddress(sellerAddressFromCart);
+  }, [sellerAddressFromCart]);
 
   const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
 
-  /* TOKEN ONLY PAYMENT (10%) */
-
-  const tokenAmount = Math.round(total * 0.1);
+  const baseTokenBookingAmount = 10;
+  const availableTokens = Number(user?.tokens || 0);
+  const canUseToken = availableTokens > 0;
+  const payableAmount = useToken && canUseToken ? 0 : baseTokenBookingAmount;
 
   const placeOrder = async () => {
 
@@ -34,15 +50,19 @@ export default function CheckoutPage() {
 
       const orderData = {
         userId: currentUser?.uid || user?.uid,
+        customerName: user?.name || "Buyer",
+        customerPhone: user?.phoneNumber || currentUser?.phoneNumber || "",
         orderId,
         items: cart.map(item => ({
           id: item.id,
           name: item.name,
           price: item.price,
           quantity: item.qty,
-          seller: item.sellerName || "Direct Seller"
+          seller: item.sellerName || "Direct Seller",
+          sellerShopName: item.sellerShopName || "AquaTrade Seller",
+          sellerId: item.sellerId || null,
         })),
-        total: tokenAmount,
+        total: payableAmount,
         fullTotal: total,
         status: "Confirmed",
         paymentMethod: payMethod,
@@ -50,12 +70,35 @@ export default function CheckoutPage() {
         createdAt: serverTimestamp(),
       };
 
-      await addDoc(collection(db, "orders"), orderData);
+      await addDoc(collection(db, "orders"), {
+        ...orderData,
+        total: payableAmount,
+        tokenUsed: useToken && canUseToken,
+      });
+
+      if (useToken && canUseToken) {
+        await updateDoc(doc(db, "users", currentUser.uid), {
+          tokens: increment(-1),
+        });
+        dispatch({
+          type: "SET_USER",
+          payload: { ...user, tokens: Math.max(availableTokens - 1, 0) },
+        });
+      }
+
+      // Reduce stock after successful order placement.
+      await Promise.all(
+        cart.map((item) =>
+          updateDoc(doc(db, "products", item.id), {
+            stock: increment(-Number(item.qty || 0)),
+          })
+        )
+      );
 
       const order = {
         id: orderId,
         items: [...cart],
-        total: tokenAmount,
+        total: payableAmount,
         status: "Confirmed",
         date: new Date().toLocaleString(),
         address
@@ -140,11 +183,26 @@ export default function CheckoutPage() {
         {step === "address" ? (
 
           <>
+            <div
+              style={{
+                background: "#E8F9FF",
+                border: "1px solid #B3ECF7",
+                borderRadius: "12px",
+                padding: "12px",
+                marginBottom: "12px",
+                color: "#0A3D62",
+                fontSize: "13px",
+                fontWeight: 600,
+              }}
+            >
+              Pickup location auto-filled from seller listing. You can edit it before payment.
+            </div>
             <textarea
               value={address}
               onChange={(e)=>setAddress(e.target.value)}
               rows={3}
               className="input-field"
+              placeholder="Enter pickup location"
             />
 
             <button
@@ -169,15 +227,46 @@ export default function CheckoutPage() {
               }}
             >
               Token Payment
-              <h2>₹{tokenAmount}</h2>
+              <h2>
+                {useToken && canUseToken ? (
+                  <>
+                    <span style={{ textDecoration: "line-through", opacity: 0.8, marginRight: "8px" }}>
+                      ₹{baseTokenBookingAmount}
+                    </span>
+                    <span style={{ color: "#86EFAC" }}>₹0</span>
+                  </>
+                ) : (
+                  `₹${baseTokenBookingAmount}`
+                )}
+              </h2>
             </div>
+
+            {canUseToken && (
+              <button
+                type="button"
+                onClick={() => setUseToken((prev) => !prev)}
+                style={{
+                  width: "100%",
+                  borderRadius: "12px",
+                  border: useToken ? "2px solid #2ECC71" : "1px solid #D1D5DB",
+                  background: useToken ? "#ECFDF5" : "white",
+                  color: "#0A3D62",
+                  padding: "12px",
+                  marginBottom: "12px",
+                  fontWeight: 700,
+                  cursor: "pointer",
+                }}
+              >
+                {useToken ? "1 token applied" : "Use Token"} · Remaining tokens: {availableTokens}
+              </button>
+            )}
 
             <button
               className="btn-primary"
               disabled={loading}
               onClick={placeOrder}
             >
-              {loading ? "Processing..." : `Pay ₹${tokenAmount}`}
+              {loading ? "Processing..." : `Pay ₹${payableAmount}`}
             </button>
 
           </>

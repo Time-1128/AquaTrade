@@ -1,262 +1,341 @@
 import { useRef, useState } from "react";
 import { useApp } from "./context/AppContext";
 import { auth, db } from "./firebase.config";
-import { RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth";
-import { doc, serverTimestamp, setDoc, getDoc } from "firebase/firestore";
+import {
+  RecaptchaVerifier,
+  signInWithEmailAndPassword,
+  signInWithPhoneNumber,
+} from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
 
 export default function LoginPage() {
-  const { state, dispatch, loginInProgress } = useApp(); // ← get the ref
-  const [step, setStep] = useState("phone");
-  const [phone, setPhone] = useState("");
-  const [otp, setOtp] = useState(["", "", "", "", "", ""]);
-  const [confirmationResult, setConfirmationResult] = useState(null);
+  const { dispatch, loginInProgress } = useApp();
+
+  const [mode, setMode] = useState("email");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  const [phone, setPhone] = useState("");
+  const [otp, setOtp] = useState(["", "", "", "", "", ""]);
+  const [phoneStep, setPhoneStep] = useState("phone");
+  const [confirmationResult, setConfirmationResult] = useState(null);
   const otpRefs = useRef([]);
 
-  const initRecaptchaVerifier = async () => {
-    if (window.recaptchaVerifier) {
-      try { window.recaptchaVerifier.clear(); } catch {}
-      window.recaptchaVerifier = null;
+  const isProfileComplete = (data) => {
+    const hasName = !!data?.name?.trim();
+    const hasContact = !!data?.email?.trim() || !!data?.phoneNumber?.trim();
+    const hasRole = !!data?.role;
+    const hasAddress = !!data?.address?.trim();
+    if (!hasName || !hasContact || !hasRole || !hasAddress) return false;
+    if (data.role === "seller") {
+      return !!data?.shopName?.trim() && !!data?.description?.trim() && !!data?.availableTiming?.trim();
     }
-    const container = document.getElementById("recaptcha-container");
-    if (container) container.innerHTML = "";
+    return true;
+  };
 
+  const routeAfterAuth = async (firebaseUser, fallbackContact = {}) => {
+    const userRef = doc(db, "users", firebaseUser.uid);
+    const userDoc = await getDoc(userRef);
+    const userData = userDoc.exists() ? userDoc.data() : {};
+
+    dispatch({
+      type: "SET_USER",
+      payload: {
+        uid: firebaseUser.uid,
+        email: firebaseUser.email || fallbackContact.email || "",
+        phoneNumber: firebaseUser.phoneNumber || fallbackContact.phoneNumber || "",
+        ...userData,
+      },
+    });
+
+    if (!userDoc.exists() || !isProfileComplete(userData)) {
+      dispatch({ type: "SET_PAGE", payload: "profileSetup" });
+      return;
+    }
+    dispatch({
+      type: "SET_PAGE",
+      payload: userData.role === "seller" ? "seller" : "home",
+    });
+  };
+
+  const handleEmailLogin = async () => {
+    if (!email.trim()) return setError("Email is required.");
+    if (!password) return setError("Password is required.");
+
+    setError("");
+    setLoading(true);
+    loginInProgress.current = true;
     try {
-      const verifier = new RecaptchaVerifier(auth, "recaptcha-container", {
-        size: "invisible",
-        callback: () => console.log("reCAPTCHA solved"),
-        "expired-callback": () => console.warn("reCAPTCHA expired"),
-      });
-      window.recaptchaVerifier = verifier;
-      await verifier.render();
-      return verifier;
+      const cred = await signInWithEmailAndPassword(auth, email.trim(), password);
+      await routeAfterAuth(cred.user, { email: email.trim() });
     } catch (err) {
-      window.recaptchaVerifier = null;
-      throw new Error(`reCAPTCHA initialization failed: ${err.message}`);
+      const msg = {
+        "auth/invalid-email": "Enter a valid email address.",
+        "auth/user-disabled": "This account has been disabled.",
+        "auth/user-not-found": "No account found with this email.",
+        "auth/wrong-password": "Incorrect password.",
+        "auth/invalid-credential": "Incorrect email or password.",
+        "auth/too-many-requests": "Too many attempts. Try again later.",
+        "auth/operation-not-allowed":
+          "Email/Password sign-in is not enabled in Firebase Authentication. Enable it in Firebase Console > Authentication > Sign-in method.",
+      };
+      setError(msg[err.code] || "Login failed. Please try again.");
+    } finally {
+      loginInProgress.current = false;
+      setLoading(false);
     }
   };
 
-  const sendOTP = async () => {
+  const initRecaptcha = async () => {
+    if (window.recaptchaVerifier) {
+      try {
+        window.recaptchaVerifier.clear();
+      } catch {}
+      window.recaptchaVerifier = null;
+    }
+
+    const container = document.getElementById("recaptcha-container");
+    if (container) container.innerHTML = "";
+
+    const verifier = new RecaptchaVerifier(auth, "recaptcha-container", {
+      size: "invisible",
+    });
+    window.recaptchaVerifier = verifier;
+    await verifier.render();
+    return verifier;
+  };
+
+  const handleSendOtp = async () => {
     if (!/^\d{10}$/.test(phone)) {
-      setError("Enter a valid 10-digit phone number");
+      setError("Enter a valid 10-digit phone number.");
       return;
     }
     setError("");
     setLoading(true);
     try {
-      const appVerifier = await initRecaptchaVerifier();
-      const result = await signInWithPhoneNumber(auth, `+91${phone}`, appVerifier);
+      const verifier = await initRecaptcha();
+      const result = await signInWithPhoneNumber(auth, `+91${phone}`, verifier);
       setConfirmationResult(result);
-      setStep("otp");
+      setPhoneStep("otp");
     } catch (err) {
-      const msgs = {
+      const msg = {
         "auth/invalid-phone-number": "Invalid phone number format.",
         "auth/too-many-requests": "Too many OTP requests. Try again later.",
-        "auth/operation-not-allowed": "Phone authentication is not enabled in Firebase.",
-        "auth/app-not-authorized": "This app is not authorized for Firebase Phone Auth.",
-        "auth/web-storage-unsupported": "Web storage is blocked or unsupported.",
+        "auth/operation-not-allowed": "Phone login is not enabled in Firebase.",
       };
-      setError(msgs[err.code] || err.message || "Failed to send OTP.");
+      setError(msg[err.code] || "Failed to send OTP.");
     } finally {
       setLoading(false);
     }
   };
 
-  const verifyOTP = async () => {
+  const handleVerifyOtp = async () => {
     const code = otp.join("");
-    if (code.length !== 6) { setError("Enter the 6-digit OTP"); return; }
-    if (!confirmationResult) { setError("OTP session expired. Please resend."); return; }
+    if (code.length !== 6) return setError("Enter the 6-digit OTP.");
+    if (!confirmationResult) return setError("OTP session expired. Please resend.");
 
     setError("");
     setLoading(true);
-
-    // ── Tell onAuthStateChanged to stand down — we're handling routing ──
     loginInProgress.current = true;
-
     try {
-      const userCredential = await confirmationResult.confirm(code);
-      const user = userCredential.user;
-      const phoneNumber = user.phoneNumber || `+91${phone}`;
-
-      // Write lastLogin
-      const userDocRef = doc(db, "users", user.uid);
-      await setDoc(userDocRef, {
-        uid: user.uid,
-        phoneNumber,
-        lastLogin: serverTimestamp()
-      }, { merge: true });
-
-      // Now fetch the UPDATED profile
-      const userDoc = await getDoc(userDocRef);
-      const userData = userDoc.data();
-
-      dispatch({
-        type: "SET_USER",
-        payload: { uid: user.uid, phoneNumber, ...userData }
-      });
-
-      const isProfileComplete = (data) => {
-        const hasName = !!data?.name?.trim();
-        const hasRole = !!data?.role;
-        const hasAddress = !!data?.address?.trim();
-
-        if (!hasName || !hasRole || !hasAddress) return false;
-        if (data.role === "seller") {
-          return !!data?.shopName?.trim() && !!data?.description?.trim() && !!data?.availableTiming?.trim();
-        }
-        return true;
-      };
-
-      // ── Route based on logout-intent + profile completeness ──
-      if (state.askProfileSetup) {
-        dispatch({ type: "SET_ASK_PROFILE_SETUP", payload: false });
-        dispatch({ type: "SET_PAGE", payload: "profileSetup" });
-      } else if (isProfileComplete(userData)) {
-        dispatch({
-          type: "SET_PAGE",
-          payload: userData.role === "seller" ? "seller" : "home"
-        });
-      } else {
-        // New or incomplete user — profile details still needed
-        dispatch({ type: "SET_PAGE", payload: "profileSetup" });
-      }
-
+      const cred = await confirmationResult.confirm(code);
+      await routeAfterAuth(cred.user, { phoneNumber: `+91${phone}` });
     } catch (err) {
-      const msgs = {
+      const msg = {
         "auth/invalid-verification-code": "Invalid OTP. Please try again.",
-        "auth/code-expired": "OTP expired. Please request a new code.",
+        "auth/code-expired": "OTP expired. Please request a new one.",
       };
-      setError(msgs[err.code] || err.message || "OTP verification failed.");
+      setError(msg[err.code] || "OTP verification failed.");
     } finally {
-      setLoading(false);
-      // ── Release the lock so future auth events work normally ──
       loginInProgress.current = false;
+      setLoading(false);
     }
   };
 
-  const handleOtpChange = (index, value) => {
-    if (!/^\d?$/.test(value)) return;
-    const next = [...otp];
-    next[index] = value;
-    setOtp(next);
-    if (value && index < 5) otpRefs.current[index + 1]?.focus();
-  };
-
-  const handleResend = () => {
-    setOtp(["", "", "", "", "", ""]);
-    setError("");
-    setConfirmationResult(null);
-    setStep("phone");
-    try { window.recaptchaVerifier?.clear(); } catch {}
-    window.recaptchaVerifier = null;
-    const container = document.getElementById("recaptcha-container");
-    if (container) container.innerHTML = "";
-  };
-
   return (
-    <div style={{ minHeight: "100vh", background: "#FFF8F0", display: "flex", flexDirection: "column" }}>
+    <div style={{ minHeight: "100vh", background: "#F5F7FA", display: "flex", flexDirection: "column" }}>
       <div id="recaptcha-container"></div>
-
-      <div style={{
-        background: "linear-gradient(160deg, #0A3D62 0%, #00B4D8 100%)",
-        padding: "50px 24px 70px",
-        textAlign: "center",
-        position: "relative",
-        overflow: "hidden",
-      }}>
-        <div style={{ fontSize: "48px", marginBottom: "12px" }}>🌊</div>
-        <h1 style={{ fontFamily: "'Syne', sans-serif", fontSize: "28px", fontWeight: 800, color: "white", marginBottom: "6px" }}>
-          {step === "phone" ? "Sign in with OTP" : "Verify your phone"}
-        </h1>
-        <p style={{ color: "rgba(255,255,255,0.8)", fontFamily: "'DM Sans', sans-serif", fontSize: "14px" }}>
-          {step === "phone"
-            ? "Enter your phone number to receive a one-time code."
-            : "Enter the 6-digit code we sent to your phone."}
-        </p>
-        <div style={{
-          position: "absolute", bottom: 0, left: "50%",
-          width: "200%", height: "50px",
-          background: "#FFF8F0",
-          borderRadius: "50% 50% 0 0",
-          transform: "translateX(-50%)",
-        }} />
+      <div
+        style={{
+          background: "linear-gradient(160deg, #0F4C75 0%, #00B4D8 100%)",
+          padding: "52px 24px 72px",
+          textAlign: "center",
+          position: "relative",
+          overflow: "hidden",
+        }}
+      >
+        <div style={{ fontSize: "48px", marginBottom: "10px" }}>🐟</div>
+        <h1 style={{ fontSize: "28px", fontWeight: 800, color: "white", marginBottom: "6px" }}>Welcome to AquaTrade</h1>
+        <p style={{ color: "rgba(255,255,255,0.82)", fontSize: "14px" }}>Login with Email or Phone OTP</p>
+        <div
+          style={{
+            position: "absolute",
+            bottom: 0,
+            left: "50%",
+            width: "200%",
+            height: "50px",
+            background: "#F5F7FA",
+            borderRadius: "50% 50% 0 0",
+            transform: "translateX(-50%)",
+          }}
+        />
       </div>
 
-      <div style={{ padding: "0 24px", marginTop: "-10px", flex: 1, paddingBottom: "40px" }}>
-        <div className="card" style={{ padding: "28px 24px" }}>
+      <div style={{ padding: "0 22px 40px", marginTop: "-8px", flex: 1 }}>
+        <div style={{ background: "white", borderRadius: "18px", padding: "24px", boxShadow: "0 4px 20px rgba(0,0,0,0.06)" }}>
+          <div style={{ display: "flex", gap: "8px", marginBottom: "16px" }}>
+            <button
+              type="button"
+              onClick={() => {
+                setMode("email");
+                setError("");
+              }}
+              style={{
+                flex: 1,
+                border: "none",
+                borderRadius: "10px",
+                padding: "10px",
+                cursor: "pointer",
+                fontWeight: 700,
+                background: mode === "email" ? "#0F4C75" : "#EEF2F7",
+                color: mode === "email" ? "white" : "#4B5563",
+              }}
+            >
+              Email Login
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setMode("phone");
+                setError("");
+              }}
+              style={{
+                flex: 1,
+                border: "none",
+                borderRadius: "10px",
+                padding: "10px",
+                cursor: "pointer",
+                fontWeight: 700,
+                background: mode === "phone" ? "#0F4C75" : "#EEF2F7",
+                color: mode === "phone" ? "white" : "#4B5563",
+              }}
+            >
+              Phone Login
+            </button>
+          </div>
 
-          {step === "phone" ? (
+          {mode === "email" ? (
             <>
-              <h2 style={{ fontFamily: "'Syne', sans-serif", fontSize: "20px", fontWeight: 700, marginBottom: "20px", color: "#0A3D62" }}>
-                Enter your mobile number
-              </h2>
-              <div style={{ position: "relative", marginBottom: "24px" }}>
-                <div style={{ position: "absolute", left: "14px", top: "50%", transform: "translateY(-50%)", fontWeight: 700, color: "#0A3D62" }}>
-                  +91
-                </div>
-                <input
-                  type="tel"
-                  maxLength={10}
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
-                  placeholder="9876543210"
-                  className="input-field"
-                  style={{ paddingLeft: "52px", fontSize: "16px", width: "100%" }}
-                />
-              </div>
-              {error && <p style={{ color: "#E74C3C", fontSize: "13px", marginBottom: "12px" }}>{error}</p>}
-              <button className="btn-primary" onClick={sendOTP} disabled={loading}>
-                {loading ? "Sending OTP..." : "Send OTP"}
+              <label style={{ display: "block", marginBottom: "6px", fontWeight: 700, color: "#0F4C75", fontSize: "13px" }}>Email</label>
+              <input
+                className="input-field"
+                type="email"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+
+              <label style={{ display: "block", marginBottom: "6px", marginTop: "12px", fontWeight: 700, color: "#0F4C75", fontSize: "13px" }}>Password</label>
+              <input
+                className="input-field"
+                type="password"
+                placeholder="Enter your password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+
+              <button className="btn-primary" onClick={handleEmailLogin} disabled={loading} style={{ marginTop: "16px" }}>
+                {loading ? "Signing in..." : "Continue with Email"}
               </button>
             </>
           ) : (
             <>
-              <button
-                onClick={() => { setStep("phone"); setError(""); }}
-                style={{ background: "none", border: "none", color: "#00B4D8", fontSize: "18px", cursor: "pointer", marginBottom: "16px" }}
-              >
-                ← Back
-              </button>
-              <h2 style={{ fontFamily: "'Syne', sans-serif", fontSize: "20px", fontWeight: 700, marginBottom: "6px", color: "#0A3D62" }}>
-                Enter OTP
-              </h2>
-              <p style={{ color: "#718096", marginBottom: "20px", fontSize: "14px" }}>
-                Code sent to +91 {phone}
-              </p>
-              <div style={{ display: "flex", gap: "10px", marginBottom: "24px", justifyContent: "center" }}>
-                {otp.map((digit, index) => (
+              {phoneStep === "phone" ? (
+                <>
+                  <label style={{ display: "block", marginBottom: "6px", fontWeight: 700, color: "#0F4C75", fontSize: "13px" }}>Phone Number</label>
                   <input
-                    key={index}
-                    ref={(el) => (otpRefs.current[index] = el)}
+                    className="input-field"
                     type="tel"
-                    maxLength={1}
-                    value={digit}
-                    onChange={(e) => handleOtpChange(index, e.target.value)}
-                    style={{
-                      width: "45px", height: "55px",
-                      textAlign: "center", fontSize: "20px",
-                      borderRadius: "12px", border: "2px solid #00B4D8", outline: "none",
-                    }}
+                    placeholder="10-digit mobile number"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
                   />
-                ))}
-              </div>
-              {error && <p style={{ color: "#E74C3C", fontSize: "13px", marginBottom: "12px" }}>{error}</p>}
-              <button className="btn-primary" onClick={verifyOTP} disabled={loading}>
-                {loading ? "Verifying..." : "Verify OTP"}
-              </button>
-              <p style={{ marginTop: "20px", fontSize: "14px", textAlign: "center", color: "#4A5568" }}>
-                Didn't receive the code?{" "}
-                <button
-                  type="button"
-                  onClick={handleResend}
-                  style={{ background: "none", border: "none", color: "#00B4D8", cursor: "pointer", fontWeight: 700 }}
-                >
-                  Resend
-                </button>
-              </p>
+                  <button className="btn-primary" onClick={handleSendOtp} disabled={loading} style={{ marginTop: "16px" }}>
+                    {loading ? "Sending OTP..." : "Send OTP"}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <p style={{ color: "#6B7280", marginBottom: "12px", fontSize: "14px" }}>Enter OTP sent to +91 {phone}</p>
+                  <div style={{ display: "flex", gap: "8px", marginBottom: "14px", justifyContent: "center" }}>
+                    {otp.map((digit, index) => (
+                      <input
+                        key={index}
+                        ref={(el) => (otpRefs.current[index] = el)}
+                        type="tel"
+                        maxLength={1}
+                        value={digit}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/\D/g, "");
+                          const next = [...otp];
+                          next[index] = value;
+                          setOtp(next);
+                          if (value && index < 5) otpRefs.current[index + 1]?.focus();
+                        }}
+                        style={{
+                          width: "42px",
+                          height: "48px",
+                          textAlign: "center",
+                          fontSize: "18px",
+                          borderRadius: "10px",
+                          border: "2px solid #C7D2FE",
+                          outline: "none",
+                        }}
+                      />
+                    ))}
+                  </div>
+                  <button className="btn-primary" onClick={handleVerifyOtp} disabled={loading}>
+                    {loading ? "Verifying..." : "Verify OTP"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPhoneStep("phone");
+                      setOtp(["", "", "", "", "", ""]);
+                      setConfirmationResult(null);
+                      setError("");
+                    }}
+                    style={{
+                      marginTop: "10px",
+                      background: "none",
+                      border: "none",
+                      color: "#0F4C75",
+                      fontWeight: 700,
+                      cursor: "pointer",
+                    }}
+                  >
+                    Change phone / Resend
+                  </button>
+                </>
+              )}
             </>
           )}
+
+          {error && <p style={{ color: "#C0392B", fontSize: "13px", marginTop: "10px" }}>{error}</p>}
+
+          <p style={{ textAlign: "center", marginTop: "14px", color: "#6B7280", fontSize: "14px" }}>
+            Don't have an account?{" "}
+            <button
+              type="button"
+              onClick={() => dispatch({ type: "SET_PAGE", payload: "profileSetup" })}
+              style={{ background: "none", border: "none", color: "#0F4C75", fontWeight: 700, cursor: "pointer" }}
+            >
+              Sign Up
+            </button>
+          </p>
         </div>
       </div>
     </div>

@@ -8,6 +8,7 @@ import ProfilePage from "./ProfilePage";
 import ProfileSetup from "./ProfileSetup";   // ← NEW
 import SellerDashboard from "./SellerDashboard";
 import CheckoutPage from "./CheckoutPage";
+import OrdersPage from "./OrdersPage";
 
 import { AppProvider, useApp } from "./context/AppContext";
 
@@ -47,6 +48,9 @@ function AppRouter() {
 
     case "checkout":
       return <CheckoutPage />;
+
+    case "orders":
+      return <OrdersPage />;
 
     default:
       return <LandingPage />;

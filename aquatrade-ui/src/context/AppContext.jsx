@@ -16,17 +16,15 @@ const initialState = {
   activeTab: "All",
   askProfileSetup: false,
   filters: {
-    type: "All",
-    category: "All",
-    fishType: "All",
-    priceRange: [0, 3000],
-    minRating: 0,
-    sortBy: "none",
-    maxDistance: 10,
-    maxEta: 60,
-    discount: false,
+    fishTypes: [],
+    sortBy: "",
+    priceRanges: [],
+    discounts: [],
+    ratings: [],
+    distanceRanges: [],
   },
-  fish: []
+  fish: [],
+  checkoutPickupAddress: "",
 };
 
 function reducer(state, action) {
@@ -39,7 +37,7 @@ function reducer(state, action) {
       return { ...state, user: action.payload };
 
     case "LOGOUT":
-      return { ...initialState, currentPage: "login", askProfileSetup: true };
+      return { ...initialState, currentPage: "login", askProfileSetup: false };
 
     case "SET_SEARCH":
       return { ...state, searchQuery: action.payload };
@@ -49,6 +47,9 @@ function reducer(state, action) {
 
     case "SET_FILTERS":
       return { ...state, filters: { ...state.filters, ...action.payload } };
+
+    case "SET_CHECKOUT_PICKUP_ADDRESS":
+      return { ...state, checkoutPickupAddress: action.payload || "" };
 
     case "SET_ASK_PROFILE_SETUP":
       return { ...state, askProfileSetup: action.payload };
@@ -113,10 +114,11 @@ export function AppProvider({ children }) {
 
   const isProfileComplete = (userData) => {
     const hasName = !!userData?.name?.trim();
+    const hasContact = !!userData?.email?.trim() || !!userData?.phoneNumber?.trim();
     const hasRole = !!userData?.role;
     const hasAddress = !!userData?.address?.trim();
 
-    if (!hasName || !hasRole || !hasAddress) return false;
+    if (!hasName || !hasContact || !hasRole || !hasAddress) return false;
     if (userData.role === "seller") {
       return !!userData?.shopName?.trim() && !!userData?.description?.trim() && !!userData?.availableTiming?.trim();
     }
@@ -139,7 +141,8 @@ export function AppProvider({ children }) {
             type: "SET_USER",
             payload: {
               uid: firebaseUser.uid,
-              phoneNumber: firebaseUser.phoneNumber,
+              email: firebaseUser.email || "",
+              phoneNumber: firebaseUser.phoneNumber || "",
               ...userData
             },
           });

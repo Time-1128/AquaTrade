@@ -2,376 +2,231 @@ import { useState } from "react";
 import { useApp } from "./context/AppContext";
 import { auth, db } from "./firebase.config";
 import { doc, updateDoc } from "firebase/firestore";
-import { signOut } from "firebase/auth";   // ← add this
+import { signOut } from "firebase/auth";
 import BottomNav from "./components/BottomNav";
 
 export default function ProfilePage() {
-
-const { state, dispatch } = useApp();
-const { user, orders } = state;
-
-const [activeTab, setActiveTab] = useState("orders");
-
-const [editing, setEditing] = useState(false);
-
-const [form, setForm] = useState({
-name: user?.name || "",
-email: user?.email || ""
-});
-
-const savedAddresses = [
-{ label: "Home", icon: "🏠", addr: "12, Marina Beach Rd, Chennai - 600001" },
-{ label: "Work", icon: "💼", addr: "45, Anna Salai, Chennai - 600002" }
-];
-
-const stats = [
-{ label: "Orders", value: orders?.length || 0, icon: "📦" },
-{ label: "Loyalty Pts", value: (orders?.length || 0) * 50, icon: "⭐" },
-{ label: "Saved", value: "₹" + (orders?.length || 0) * 80, icon: "💰" }
-];
-
-const logout = async () => {
-  try {
-    await signOut(auth);
-  } catch (err) {
-    console.error("Logout error:", err);
-  }
-  dispatch({ type: "LOGOUT" });
-};
-
-const saveProfile = async () => {
-
-try {
-  const currentUser = auth.currentUser;
-  if (!currentUser) {
-    alert("Please log in first");
-    return;
-  }
-
-  const userDocRef = doc(db, "users", currentUser.uid);
-  await updateDoc(userDocRef, form);
-
-  dispatch({
-    type: "SET_USER",
-    payload: { ...user, ...form }
+  const { state, dispatch } = useApp();
+  const { user } = state;
+  const [editing, setEditing] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+  const [form, setForm] = useState({
+    name: user?.name || "",
+    email: user?.email || "",
+    phoneNumber: user?.phoneNumber || "",
+    address: user?.address || "",
+    location: user?.location || null,
+    shopName: user?.shopName || "",
+    description: user?.description || "",
+    availableTiming: user?.availableTiming || "",
   });
+  const isSeller = user?.role === "seller";
+  const themePrimary = isSeller ? "#2ECC71" : "#0F4C75";
+  const pageBg = isSeller ? "#EAFBF0" : "#F5F7FA";
+  const headerGradient = isSeller
+    ? "linear-gradient(160deg, #2ECC71, #1F9D5A)"
+    : "linear-gradient(160deg, #0F4C75, #1D6FA8)";
 
-  setEditing(false);
-  alert("Profile updated successfully!");
+  const useCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      setError("Geolocation not supported.");
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+        try {
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`
+          );
+          const data = await response.json();
+          const address = data.display_name || `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+          setForm((f) => ({ ...f, address, location: { lat, lng } }));
+          setError("");
+        } catch {
+          setError("Could not fetch address from location.");
+        }
+      },
+      () => setError("Location permission denied.")
+    );
+  };
 
-} catch (err) {
-  console.error("Profile update failed:", err);
-  alert("Failed to update profile: " + err.message);
-}
+  const saveProfile = async () => {
+    const currentUser = auth.currentUser;
+    if (!currentUser) return setError("Please login again.");
+    if (!form.name.trim()) return setError("Name is required.");
+    if (!form.address.trim()) return setError("Address is required.");
+    if (user?.role === "seller" && (!form.shopName.trim() || !form.phoneNumber.trim())) {
+      return setError("Shop name and phone are required for sellers.");
+    }
+    setLoading(true);
+    setError("");
+    setMessage("");
+    try {
+      const payload = {
+        name: form.name.trim(),
+        email: form.email.trim(),
+        phoneNumber: form.phoneNumber.trim(),
+        address: form.address.trim(),
+        location: form.location || null,
+        ...(user?.role === "seller" && {
+          shopName: form.shopName.trim(),
+          description: form.description.trim(),
+          availableTiming: form.availableTiming.trim(),
+        }),
+      };
+      await updateDoc(doc(db, "users", currentUser.uid), payload);
+      dispatch({ type: "SET_USER", payload: { ...user, ...payload } });
+      setEditing(false);
+      setMessage("Profile updated successfully.");
+    } catch (err) {
+      console.error(err);
+      setError("Failed to update profile.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-};
+  const logout = async () => {
+    try {
+      await signOut(auth);
+    } catch (err) {
+      console.error("Logout error:", err);
+    }
+    dispatch({ type: "LOGOUT" });
+  };
 
-/* SAFE IMAGE RESOLVER */
+  const cardStyle = {
+    background: "white",
+    borderRadius: "14px",
+    padding: "14px",
+    border: "1px solid #E5E7EB",
+    boxShadow: "0 4px 14px rgba(15,76,117,0.06)",
+  };
 
-const resolveImage = (img) => {
-
-
-if (!img || img === "🐟" || img === "?") return null;
-
-if (img.startsWith("http")) return img;
-
-return `http://localhost:5000/${img}`;
-
-
-};
-
-return ( <div className="app-container">
-
-
-  {/* Header */}
-
-  <div
-    style={{
-      background: "linear-gradient(160deg, #0A3D62, #00B4D8)",
-      padding: "30px 20px 80px",
-      position: "relative"
-    }}
-  >
-
-    <div style={{ display: "flex", alignItems: "center", gap: "16px", marginBottom: "16px" }}>
-
-      <div
-        style={{
-          width: "64px",
-          height: "64px",
-          background: "rgba(255,255,255,0.15)",
-          borderRadius: "50%",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontSize: "28px",
-          border: "3px solid rgba(255,255,255,0.3)"
-        }}
-      >
-        {user?.role === "seller" ? "🎣" : "👤"}
-      </div>
-
-      <div>
-
-        <h2
-          style={{
-            fontFamily: "'Syne', sans-serif",
-            fontSize: "20px",
-            fontWeight: 800,
-            color: "white"
-          }}
-        >
-          {user?.name || "User"}
-        </h2>
-
-        <p style={{ color: "rgba(255,255,255,0.7)", fontSize: "13px" }}>
-          +91 {user?.phone || "0000000000"}
+  return (
+    <div className={`app-container ${isSeller ? "seller-theme" : ""}`} style={{ background: pageBg }}>
+      <div style={{ background: headerGradient, padding: "24px 18px", color: "white" }}>
+        <h2 style={{ fontSize: "24px", fontWeight: 800 }}>👤 Profile</h2>
+        <p style={{ marginTop: "6px", opacity: 0.86, fontSize: "13px" }}>
+          Manage your account and contact details
         </p>
-
-        <span
-          style={{
-            background: "rgba(255,255,255,0.15)",
-            color: "white",
-            padding: "2px 10px",
-            borderRadius: "20px",
-            fontSize: "11px",
-            fontFamily: "'Syne', sans-serif",
-            fontWeight: 600
-          }}
-        >
-          {user?.role === "seller" ? "🎣 Fisherman" : "🛒 Buyer"}
-        </span>
-
-        <button
-          onClick={() => setEditing(true)}
-          style={{
-            marginTop: "10px",
-            padding: "6px 12px",
-            borderRadius: "8px",
-            border: "none",
-            background: "#00B4D8",
-            color: "white",
-            cursor: "pointer",
-            fontSize: "12px"
-          }}
-        >
-          Edit Profile
-        </button>
-
       </div>
 
-    </div>
-
-    {editing && (
-
-      <div
-        style={{
-          background: "white",
-          padding: "16px",
-          borderRadius: "12px",
-          marginBottom: "16px"
-        }}
-      >
-
-        <input
-          className="input-field"
-          placeholder="Name"
-          value={form.name}
-          onChange={(e) =>
-            setForm({ ...form, name: e.target.value })
-          }
-        />
-
-        <input
-          className="input-field"
-          placeholder="Email"
-          value={form.email}
-          onChange={(e) =>
-            setForm({ ...form, email: e.target.value })
-          }
-        />
-
-        <button
-          className="btn-primary"
-          onClick={saveProfile}
-        >
-          Save Changes
-        </button>
-
-      </div>
-
-    )}
-
-    <div style={{ display: "flex", gap: "10px" }}>
-
-      {stats.map((s) => (
-
-        <div
-          key={s.label}
-          style={{
-            flex: 1,
-            background: "rgba(255,255,255,0.12)",
-            borderRadius: "14px",
-            padding: "12px",
-            textAlign: "center"
-          }}
-        >
-
-          <p style={{ fontSize: "18px", marginBottom: "2px" }}>{s.icon}</p>
-
-          <p
-            style={{
-              fontFamily: "'Syne', sans-serif",
-              fontWeight: 800,
-              fontSize: "18px",
-              color: "white"
-            }}
-          >
-            {s.value}
+      <div className="scrollable-content" style={{ padding: "14px" }}>
+        <div style={cardStyle}>
+          <p style={{ color: "#6B7280", fontSize: "12px" }}>Role</p>
+          <p style={{ color: themePrimary, fontWeight: 800, fontSize: "16px", marginBottom: "10px" }}>
+            {isSeller ? "Seller" : "Buyer"}
           </p>
 
-          <p style={{ fontSize: "10px", color: "rgba(255,255,255,0.6)" }}>
-            {s.label}
+          <label style={{ fontSize: "12px", color: "#334155", fontWeight: 700 }}>Full Name</label>
+          <input className="input-field" value={form.name} disabled={!editing} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
+
+          <label style={{ fontSize: "12px", color: "#334155", fontWeight: 700, marginTop: "8px", display: "block" }}>Email</label>
+          <input className="input-field" value={form.email} disabled={!editing} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} />
+
+          <label style={{ fontSize: "12px", color: "#334155", fontWeight: 700, marginTop: "8px", display: "block" }}>Phone Number</label>
+          <input className="input-field" value={form.phoneNumber} disabled={!editing} onChange={(e) => setForm((f) => ({ ...f, phoneNumber: e.target.value }))} />
+
+          <label style={{ fontSize: "12px", color: "#334155", fontWeight: 700, marginTop: "8px", display: "block" }}>Address</label>
+          <textarea className="input-field" value={form.address} disabled={!editing} onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))} />
+
+          {editing && (
+            <button
+              type="button"
+              onClick={useCurrentLocation}
+              style={{ width: "100%", marginTop: "8px", border: "1px solid #D1D5DB", borderRadius: "10px", background: "white", padding: "10px", cursor: "pointer", color: themePrimary, fontWeight: 700 }}
+            >
+              📍 Use current location
+            </button>
+          )}
+
+          {user?.role === "seller" && (
+            <>
+              <label style={{ fontSize: "12px", color: "#334155", fontWeight: 700, marginTop: "8px", display: "block" }}>Shop Name</label>
+              <input className="input-field" value={form.shopName} disabled={!editing} onChange={(e) => setForm((f) => ({ ...f, shopName: e.target.value }))} />
+
+              <label style={{ fontSize: "12px", color: "#334155", fontWeight: 700, marginTop: "8px", display: "block" }}>Description</label>
+              <textarea className="input-field" value={form.description} disabled={!editing} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} />
+
+              <label style={{ fontSize: "12px", color: "#334155", fontWeight: 700, marginTop: "8px", display: "block" }}>Available Timing</label>
+              <input className="input-field" value={form.availableTiming} disabled={!editing} onChange={(e) => setForm((f) => ({ ...f, availableTiming: e.target.value }))} />
+            </>
+          )}
+
+          {error && <p style={{ color: "#B91C1C", fontSize: "13px", marginTop: "10px" }}>{error}</p>}
+          {message && <p style={{ color: "#047857", fontSize: "13px", marginTop: "10px" }}>{message}</p>}
+
+          <div style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
+            {editing ? (
+              <>
+                <button
+                  onClick={saveProfile}
+                  disabled={loading}
+                  style={{ flex: 1, border: "none", borderRadius: "10px", background: "#2ECC71", color: "white", padding: "10px", fontWeight: 700, cursor: "pointer" }}
+                >
+                  {loading ? "Saving..." : "Save Profile"}
+                </button>
+                <button
+                  onClick={() => {
+                    setEditing(false);
+                    setError("");
+                  }}
+                  style={{ flex: 1, border: "1px solid #D1D5DB", borderRadius: "10px", background: "white", padding: "10px", fontWeight: 700, cursor: "pointer" }}
+                >
+                  Cancel
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={() => setEditing(true)}
+                  style={{ width: "100%", border: "none", borderRadius: "10px", background: themePrimary, color: "white", padding: "10px", fontWeight: 700, cursor: "pointer" }}
+              >
+                Edit Profile
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div style={{ ...cardStyle, marginTop: "12px" }}>
+          <p style={{ color: "#6B7280", fontSize: "12px" }}>Wallet</p>
+          <h3 style={{ color: themePrimary, fontWeight: 800, fontSize: "22px", marginTop: "4px" }}>
+            ₹0
+          </h3>
+          <p style={{ color: "#0F766E", fontSize: "13px", marginTop: "6px", fontWeight: 600 }}>
+            Wallet feature coming soon
           </p>
-
-        </div>
-
-      ))}
-
-    </div>
-
-  </div>
-
-  {/* Tabs */}
-
-  <div style={{ display: "flex", padding: "16px 16px 0" }}>
-    {["orders", "addresses", "care"].map((t) => (
-      <button
-        key={t}
-        onClick={() => setActiveTab(t)}
-        style={{
-          flex: 1,
-          padding: "10px",
-          border: "none",
-          background: "none",
-          borderBottom: activeTab === t ? "3px solid #00B4D8" : "3px solid transparent",
-          color: activeTab === t ? "#00B4D8" : "#718096",
-          fontFamily: "'Syne', sans-serif",
-          fontWeight: 700,
-          cursor: "pointer"
-        }}
-      >
-        {t === "care" ? "Support" : t === "addresses" ? "Addresses" : "Orders"}
-      </button>
-    ))}
-  </div>
-
-  <div className="scrollable-content" style={{ padding: "16px" }}>
-
-    {activeTab === "orders" &&
-      (orders.length === 0 ? (
-
-        <div style={{ textAlign: "center", padding: "60px 20px" }}>
-          <p style={{ fontWeight: 700 }}>No orders yet</p>
-          <button
-            className="btn-primary"
-            onClick={() =>
-              dispatch({ type: "SET_PAGE", payload: "home" })
-            }
-          >
-            Shop Now
-          </button>
-        </div>
-
-      ) : (
-
-        orders.map((order) => (
-
-          <div
-            key={order.id}
-            style={{
-              background: "white",
-              borderRadius: "16px",
-              padding: "16px",
-              marginBottom: "12px"
-            }}
-          >
-
-            <p style={{ fontWeight: 800 }}>Token #{order.id}</p>
-
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
-              {order.items?.map((i) => {
-
-                const img = resolveImage(i.image);
-
-                return (
-                  <span key={i.id} style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-
-                    {img ? (
-                      <img
-                        src={img}
-                        alt={i.name}
-                        style={{
-                          width: "24px",
-                          height: "24px",
-                          borderRadius: "6px",
-                          objectFit: "cover"
-                        }}
-                      />
-                    ) : (
-                      "🐟"
-                    )}
-
-                    {i.name} ×{i.qty}
-
-                  </span>
-                );
-              })}
+          {!isSeller && (
+            <div
+              style={{
+                marginTop: "10px",
+                background: "#F8FAFC",
+                border: "1px solid #E2E8F0",
+                borderRadius: "10px",
+                padding: "10px 12px",
+              }}
+            >
+              <p style={{ color: "#64748B", fontSize: "12px" }}>Tokens</p>
+              <p style={{ color: "#0F4C75", fontWeight: 800, fontSize: "16px", marginTop: "2px" }}>
+                You have {Number(user?.tokens || 0)} tokens left
+              </p>
             </div>
+          )}
+        </div>
 
-            <p>₹{order.total}</p>
+        <button
+          onClick={logout}
+          style={{ width: "100%", marginTop: "12px", border: "2px solid #FECACA", borderRadius: "12px", background: "#FFF1F2", color: "#DC2626", padding: "12px", fontWeight: 700, cursor: "pointer" }}
+        >
+          Logout
+        </button>
+      </div>
 
-          </div>
-
-        ))
-
-      ))}
-
-    {activeTab === "addresses" && (
-      <>
-        {savedAddresses.map((a) => (
-          <div key={a.label}>
-            {a.icon} {a.label} – {a.addr}
-          </div>
-        ))}
-      </>
-    )}
-
-    {activeTab === "care" && (
-
-      <button
-        onClick={logout}
-        style={{
-          width: "100%",
-          padding: "14px",
-          background: "#FFF0F0",
-          border: "2px solid #FFCCCC",
-          borderRadius: "16px",
-          color: "#E74C3C",
-          fontWeight: 700
-        }}
-      >
-        🚪 Logout
-      </button>
-
-    )}
-
-  </div>
-
-  <BottomNav />
-
-</div>
-
-
-);
+      <BottomNav />
+    </div>
+  );
 }

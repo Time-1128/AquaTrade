@@ -1,217 +1,220 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useApp } from "../context/AppContext";
+
+const defaultFilters = {
+  fishTypes: [],
+  sortBy: "",
+  priceRanges: [],
+  discounts: [],
+  ratings: [],
+  distanceRanges: [],
+};
+
+const filterCategories = [
+  {
+    id: "fishTypes",
+    label: "Fish Type",
+    icon: "🐠",
+    multi: true,
+    options: [
+      { id: "Sea", label: "Sea" },
+      { id: "Freshwater", label: "Freshwater" },
+      { id: "Canal/Lake", label: "Canal/Lake" },
+    ],
+  },
+  {
+    id: "sortBy",
+    label: "Sort By",
+    icon: "↕️",
+    multi: false,
+    options: [
+      { id: "priceLowHigh", label: "Price Low to High" },
+      { id: "priceHighLow", label: "Price High to Low" },
+      { id: "nearestFirst", label: "Nearest First" },
+    ],
+  },
+  {
+    id: "priceRanges",
+    label: "Price Range",
+    icon: "💰",
+    multi: true,
+    options: [
+      { id: "lt1000", label: "< ₹1000" },
+      { id: "1000-2000", label: "₹1000–₹2000" },
+      { id: "2000-5000", label: "₹2000–₹5000" },
+      { id: "5000-10000", label: "₹5000–₹10000" },
+      { id: "gt10000", label: "> ₹10000" },
+    ],
+  },
+  {
+    id: "discounts",
+    label: "Discount",
+    icon: "🏷️",
+    multi: true,
+    options: [
+      { id: "upto5", label: "Up to 5%" },
+      { id: "upto15", label: "Up to 15%" },
+      { id: "upto20", label: "Up to 20%" },
+      { id: "upto30", label: "Up to 30%" },
+      { id: "gt30", label: "More than 30%" },
+    ],
+  },
+  {
+    id: "ratings",
+    label: "Rating",
+    icon: "⭐",
+    multi: true,
+    options: [
+      { id: 1, label: "1★ & above" },
+      { id: 2, label: "2★ & above" },
+      { id: 3, label: "3★ & above" },
+      { id: 4, label: "4★ & above" },
+      { id: 5, label: "5★" },
+    ],
+  },
+  {
+    id: "distanceRanges",
+    label: "Distance",
+    icon: "📍",
+    multi: true,
+    options: [
+      { id: "within1", label: "Within 1 km" },
+      { id: "within5", label: "Within 5 km" },
+      { id: "within10", label: "Within 10 km" },
+      { id: "within20", label: "Within 20 km" },
+      { id: "more20", label: "More than 20 km" },
+    ],
+  },
+];
 
 export default function FilterPanel({ onClose }) {
   const { state, dispatch } = useApp();
-  const { filters } = state;
+  const [local, setLocal] = useState({ ...defaultFilters, ...state.filters });
+  const [activeCategory, setActiveCategory] = useState("fishTypes");
+  const [isClosing, setIsClosing] = useState(false);
 
-  const [local, setLocal] = useState({ ...filters });
-  const [expandedSections, setExpandedSections] = useState({
-    fishType: false,
-    sort: false,
-  });
+  const selectedCountByCategory = useMemo(
+    () =>
+      filterCategories.reduce((acc, category) => {
+        const value = local[category.id];
+        acc[category.id] = Array.isArray(value) ? value.length : value ? 1 : 0;
+        return acc;
+      }, {}),
+    [local]
+  );
 
-  const toggleSection = (section) => {
-    setExpandedSections((prev) => ({
-      ...prev,
-      [section]: !prev[section],
-    }));
+  const activeCategoryConfig = filterCategories.find((item) => item.id === activeCategory);
+
+  const toggleOption = (category, optionId) => {
+    setLocal((prev) => {
+      if (!category.multi) return { ...prev, [category.id]: optionId };
+
+      const current = prev[category.id] || [];
+      const exists = current.includes(optionId);
+      return {
+        ...prev,
+        [category.id]: exists ? current.filter((value) => value !== optionId) : [...current, optionId],
+      };
+    });
+  };
+
+  const isSelected = (category, optionId) => {
+    const value = local[category.id];
+    return category.multi ? (value || []).includes(optionId) : value === optionId;
   };
 
   const apply = () => {
     dispatch({ type: "SET_FILTERS", payload: local });
-    onClose();
+    setIsClosing(true);
   };
 
-  const fishTypeOptions = [
-    { id: "All", label: "All" },
-    { id: "Freshwater", label: "🌊 Freshwater" },
-    { id: "Saltwater", label: "🌴 Saltwater" },
-    { id: "Shellfish", label: "🦪 Shellfish" },
-    { id: "Exotic", label: "✨ Exotic" },
-  ];
+  const clearAll = () => {
+    setLocal(defaultFilters);
+    dispatch({ type: "SET_FILTERS", payload: defaultFilters });
+  };
 
-  const reset = () => {
-    const def = {
-      type: "All",
-      category: "All",
-      fishType: "All",
-      priceRange: [0, 3000],
-      minRating: 0,
-      sortBy: "none",
-      maxDistance: 10,
-      maxEta: 60,
-      discount: false,
+  useEffect(() => {
+    if (!isClosing) return;
+    const timer = setTimeout(() => {
+      onClose();
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [isClosing, onClose]);
+
+  useEffect(() => {
+    const handleEsc = (event) => {
+      if (event.key === "Escape") setIsClosing(true);
     };
-
-    setLocal(def);
-    dispatch({ type: "SET_FILTERS", payload: def });
-    onClose();
-  };
-
-  const sortOptions = [
-    { id: "none", label: "Default" },
-    { id: "priceLowHigh", label: "Price: Low → High" },
-    { id: "priceHighLow", label: "Price: High → Low" },
-    { id: "ratingHighLow", label: "⭐ Top Rated" },
-  ];
-
-  const SectionHeader = ({ title, section }) => (
-    <button
-      type="button"
-      onClick={() => toggleSection(section)}
-      style={{
-        width: "100%",
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        padding: "12px 14px",
-        background: "white",
-        border: "1px solid #E0E0E0",
-        borderRadius: "12px",
-        cursor: "pointer",
-        marginBottom: expandedSections[section] ? "10px" : "12px",
-        fontWeight: 700,
-        color: "#0A3D62",
-        fontSize: "13px",
-      }}
-    >
-      {title}
-      <span style={{ fontSize: "16px", transition: "transform 0.2s" }}>
-        {expandedSections[section] ? "▼" : "▶"}
-      </span>
-    </button>
-  );
+    window.addEventListener("keydown", handleEsc);
+    return () => window.removeEventListener("keydown", handleEsc);
+  }, []);
 
   return (
     <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 500,
-        background: "rgba(10,61,98,0.5)",
-        backdropFilter: "blur(4px)",
-        display: "flex",
-        alignItems: "flex-end",
-      }}
-      onClick={onClose}
+      className={`filter-overlay ${isClosing ? "closing" : ""}`}
+      onClick={() => setIsClosing(true)}
     >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          background: "white",
-          borderRadius: "24px 24px 0 0",
-          padding: "24px 20px 40px",
-          width: "100%",
-          maxWidth: "480px",
-          margin: "0 auto",
-          maxHeight: "80vh",
-          overflowY: "auto",
-          animation: "slideUp 0.3s ease",
-        }}
+      <aside
+        className={`filter-panel ${isClosing ? "closing" : ""}`}
+        onClick={(event) => event.stopPropagation()}
       >
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            marginBottom: "20px",
-          }}
-        >
-          <h2
-            style={{
-              fontFamily: "'Syne', sans-serif",
-              fontWeight: 800,
-              fontSize: "20px",
-            }}
-          >
-            ⚙️ Filters
-          </h2>
-
-          <button
-            onClick={reset}
-            style={{
-              border: "none",
-              background: "none",
-              color: "#FF6B6B",
-              fontWeight: 700,
-              cursor: "pointer",
-              fontSize: "12px",
-            }}
-          >
-            Reset
+        <div className="filter-header">
+          <h2 style={{ fontSize: "18px", fontWeight: 800, color: "#0A3D62" }}>Filters</h2>
+          <button className="filter-close-btn" onClick={() => setIsClosing(true)}>
+            ✕
           </button>
         </div>
 
-        {/* FISH TYPE SECTION */}
-        <div style={{ marginBottom: "16px" }}>
-          <SectionHeader title="🧭 Fish Type" section="fishType" />
-          {expandedSections.fishType && (
-            <div style={{ display: "grid", gap: "8px" }}>
-              {fishTypeOptions.map((option) => {
-                const selected = local.fishType === option.id;
+        <div className="filter-body">
+          <div className="filter-categories">
+            {filterCategories.map((category) => {
+              const active = activeCategory === category.id;
+              const count = selectedCountByCategory[category.id];
+              return (
+                <button
+                  key={category.id}
+                  className={`filter-category-btn ${active ? "active" : ""}`}
+                  onClick={() => setActiveCategory(category.id)}
+                >
+                  <span className="filter-category-label">
+                    {category.icon} {category.label}
+                  </span>
+                  {count > 0 && <span className="filter-count-chip">{count}</span>}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="filter-options">
+            <p style={{ color: "#0A3D62", fontWeight: 700, marginBottom: "12px" }}>
+              {activeCategoryConfig?.icon} {activeCategoryConfig?.label}
+            </p>
+            <div style={{ display: "grid", gap: "10px" }}>
+              {activeCategoryConfig?.options.map((option) => {
+                const selected = isSelected(activeCategoryConfig, option.id);
                 return (
                   <button
                     key={option.id}
-                    type="button"
-                    onClick={() => setLocal((prev) => ({ ...prev, fishType: option.id }))}
-                    style={{
-                      width: "100%",
-                      padding: "10px 12px",
-                      borderRadius: "10px",
-                      border: selected ? "2px solid #2ECC71" : "1px solid #E0E0E0",
-                      background: selected ? "rgba(46, 204, 113, 0.12)" : "white",
-                      color: "#0A3D62",
-                      textAlign: "left",
-                      cursor: "pointer",
-                      fontWeight: 600,
-                      fontSize: "13px",
-                    }}
+                    onClick={() => toggleOption(activeCategoryConfig, option.id)}
+                    className={`filter-option-btn ${selected ? "selected" : ""}`}
                   >
                     {option.label}
                   </button>
                 );
               })}
             </div>
-          )}
+          </div>
         </div>
 
-        {/* SORT SECTION */}
-        <div style={{ marginBottom: "16px" }}>
-          <SectionHeader title="📊 Sort By" section="sort" />
-          {expandedSections.sort && (
-            <div style={{ display: "grid", gap: "8px" }}>
-              {sortOptions.map((option) => {
-                const selected = local.sortBy === option.id;
-                return (
-                  <button
-                    key={option.id}
-                    type="button"
-                    onClick={() => setLocal((prev) => ({ ...prev, sortBy: option.id }))}
-                    style={{
-                      width: "100%",
-                      padding: "10px 12px",
-                      borderRadius: "10px",
-                      border: selected ? "2px solid #2ECC71" : "1px solid #E0E0E0",
-                      background: selected ? "rgba(46, 204, 113, 0.12)" : "white",
-                      color: "#0A3D62",
-                      textAlign: "left",
-                      cursor: "pointer",
-                      fontWeight: 600,
-                      fontSize: "13px",
-                    }}
-                  >
-                    {option.label}
-                  </button>
-                );
-              })}
-            </div>
-          )}
+        <div className="filter-footer">
+          <button className="btn-secondary filter-btn" onClick={clearAll}>
+            Clear All
+          </button>
+          <button className="btn-primary filter-btn" onClick={apply}>
+            Apply Filters
+          </button>
         </div>
-
-        <button className="btn-primary" onClick={apply} style={{ marginTop: "20px" }}>
-          Apply Filters ✓
-        </button>
-      </div>
+      </aside>
     </div>
   );
 }

@@ -1,3 +1,4 @@
+import { useMemo, useState } from "react";
 import { useApp } from "../context/AppContext";
 
 export default function FishCard({ fish, onAdd }) {
@@ -21,6 +22,7 @@ export default function FishCard({ fish, onAdd }) {
   const remainingStock = stock - cartQty;
 
   const canAdd = remainingStock > 0;
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
 
   const handleAdd = (e) => {
 
@@ -37,17 +39,21 @@ export default function FishCard({ fish, onAdd }) {
 
   /* IMAGE NORMALIZATION */
 
-  let imageUrl = null;
-
-  if (fish.image && fish.image !== "🐟") {
-
-    if (fish.image.startsWith("http")) {
-      imageUrl = fish.image;
-    } else {
-      imageUrl = `http://localhost:5000/${fish.image}`;
-    }
-
-  }
+  const imageList = useMemo(() => {
+    const source =
+      Array.isArray(fish.images) && fish.images.length
+        ? fish.images
+        : fish.image && fish.image !== "🐟"
+        ? [fish.image]
+        : [];
+    return source
+      .map((image) =>
+        image.startsWith("http") || image.startsWith("data:image")
+          ? image
+          : `http://localhost:5000/${image}`
+      )
+      .slice(0, 5);
+  }, [fish.image, fish.images]);
 
   return (
 
@@ -91,10 +97,10 @@ export default function FishCard({ fish, onAdd }) {
         }}
       >
 
-        {imageUrl ? (
+        {imageList.length > 0 ? (
 
           <img
-            src={imageUrl}
+            src={imageList[activeImageIndex]}
             alt={fish.name}
             style={{
               width: "80px",
@@ -108,6 +114,30 @@ export default function FishCard({ fish, onAdd }) {
 
           fish.image || "🐟"
 
+        )}
+
+        {imageList.length > 1 && (
+          <div style={{ marginTop: "8px", display: "flex", justifyContent: "center", gap: "6px" }}>
+            {imageList.map((_, index) => (
+              <button
+                key={index}
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setActiveImageIndex(index);
+                }}
+                style={{
+                  width: "8px",
+                  height: "8px",
+                  borderRadius: "50%",
+                  border: "none",
+                  background: activeImageIndex === index ? "#0F4C75" : "#CBD5E1",
+                  cursor: "pointer",
+                  padding: 0,
+                }}
+              />
+            ))}
+          </div>
         )}
 
         <div
@@ -124,20 +154,29 @@ export default function FishCard({ fish, onAdd }) {
 
       </div>
 
-      <div style={{ padding: "12px" }}>
+      <div style={{ padding: "14px" }}>
 
-        <h3 style={{ fontSize: "14px", fontWeight: 700 }}>
+        <h3 style={{ fontSize: "16px", fontWeight: 800, color: "#1F2937" }}>
           {fish.name}
         </h3>
 
-        <div style={{ fontSize: "12px", color: "#888" }}>
+        <div style={{ fontSize: "13px", color: "#6B7280", marginTop: "2px" }}>
           ⭐ {fish.rating || 4.5} ({fish.reviews || 0})
         </div>
+
+        <div style={{ fontSize: "12px", color: "#6B7280", marginTop: "6px" }}>
+          {fish.sellerShopName || "AquaTrade Seller"} • {fish.sellerName || "Seller"}
+        </div>
+        {typeof fish.distanceKm === "number" && (
+          <div style={{ fontSize: "12px", color: "#94A3B8", marginTop: "4px" }}>
+            📍 {fish.distanceKm.toFixed(1)} km away
+          </div>
+        )}
 
         <div
           style={{
             fontSize: "12px",
-            marginTop: "4px",
+            marginTop: "6px",
             fontWeight: 600,
             color: stock === 0 ? "#E74C3C" : "#555"
           }}
@@ -155,7 +194,7 @@ export default function FishCard({ fish, onAdd }) {
           }}
         >
 
-          <div style={{ fontWeight: 800 }}>
+          <div style={{ fontWeight: 800, fontSize: "18px", color: "#0F4C75" }}>
             ₹{fish.price}/kg
           </div>
 
@@ -167,8 +206,8 @@ export default function FishCard({ fish, onAdd }) {
               border: "none",
               borderRadius: "8px",
               color: "white",
-              width: "28px",
-              height: "28px",
+              width: "36px",
+              height: "36px",
               cursor: canAdd ? "pointer" : "not-allowed"
             }}
           >
