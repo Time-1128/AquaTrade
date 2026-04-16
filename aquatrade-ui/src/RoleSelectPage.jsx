@@ -20,8 +20,8 @@ export default function RoleSelectPage() {
       id: "seller",
       icon: "🎣",
       title: "Seller / Fisherman",
-      desc: "List your fresh catch, set prices, manage inventory, and connect with buyers nearby.",
-      features: ["List your catch", "AI price suggestions", "Manage orders", "Analytics dashboard"],
+      desc: "List your fresh product, set prices, manage inventory, and connect with buyers nearby.",
+      features: ["List your product", "AI price suggestions", "Manage orders", "Analytics dashboard"],
       color: "#2ECC71",
       bg: "linear-gradient(135deg, #E8FFF3, #C8F5E0)"
     }

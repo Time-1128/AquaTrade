@@ -12,17 +12,19 @@ export default function BottomNav() {
     ? cart.reduce((s, i) => s + Number(i.qty || 1), 0)
     : 0;
 
-  const items = [
+  const isSeller = state.user?.role === "seller";
 
-    { icon: "🏠", label: "Home", page: "home" },
-
-    { icon: "📦", label: "Orders", page: "orders" },
-
-    { icon: "🛒", label: "Cart", page: "cart", badge: cartCount },
-
-    { icon: "👤", label: "Profile", page: "profile" }
-
-  ];
+  const items = isSeller
+    ? [
+        { icon: "🏠", label: "Dashboard", page: "seller" },
+        { icon: "👤", label: "Profile", page: "profile" }
+      ]
+    : [
+        { icon: "🏠", label: "Home", page: "home" },
+        { icon: "📦", label: "Orders", page: "orders" },
+        { icon: "🛒", label: "Cart", page: "cart", badge: cartCount },
+        { icon: "👤", label: "Profile", page: "profile" }
+      ];
 
   return (
 

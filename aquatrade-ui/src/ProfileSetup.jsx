@@ -70,11 +70,8 @@ export default function ProfileSetup() {
       return setError("Enter a valid phone number.");
     }
 
-    if (
-      form.role === "seller" &&
-      (!form.shopName.trim() || !form.availableTiming.trim())
-    ) {
-      return setError("Please complete seller details.");
+    if (form.role === "seller" && !form.shopName.trim()) {
+      return setError("Shop name is required for sellers.");
     }
 
     setError("");
@@ -228,7 +225,7 @@ export default function ProfileSetup() {
           <label style={{ ...labelStyle, marginTop: "10px" }}>I am a *</label>
           <div style={{ display: "flex", gap: "10px", marginBottom: "14px" }}>
             {roleCard("buyer", "🛒", "Buyer", "Browse and order")}
-            {roleCard("seller", "🎣", "Seller", "List your catch")}
+            {roleCard("seller", "🎣", "Seller", "List your product")}
           </div>
 
           <label style={labelStyle}>Address *</label>
@@ -258,9 +255,9 @@ export default function ProfileSetup() {
             <div style={{ border: "1px solid #DDE3EA", borderRadius: "12px", padding: "14px", marginBottom: "14px" }}>
               <label style={labelStyle}>Shop Name *</label>
               <input className="input-field" placeholder="e.g. Chennai Fresh Catch" value={form.shopName} onChange={(e) => setForm((f) => ({ ...f, shopName: e.target.value }))} />
-              <label style={{ ...labelStyle, marginTop: "10px" }}>Description *</label>
-              <textarea className="input-field" placeholder="About your fish and services (optional)" value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} />
-              <label style={{ ...labelStyle, marginTop: "10px" }}>Available Timing *</label>
+              <label style={{ ...labelStyle, marginTop: "10px" }}>Description (optional)</label>
+              <textarea className="input-field" placeholder="Tell buyers about your product or service" value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} />
+              <label style={{ ...labelStyle, marginTop: "10px" }}>Available timing (optional)</label>
               <input className="input-field" placeholder="Mon-Sat, 6 AM - 10 AM" value={form.availableTiming} onChange={(e) => setForm((f) => ({ ...f, availableTiming: e.target.value }))} />
             </div>
           )}

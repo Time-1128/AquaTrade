@@ -116,6 +116,13 @@ h1, h2, h3, h4, h5 {
   transition: all 0.3s ease;
 }
 
+.product-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 100%;
+}
+
 .card:hover {
   box-shadow: var(--shadow-hover);
   transform: translateY(-2px) scale(1.01);
@@ -453,7 +460,7 @@ h1, h2, h3, h4, h5 {
 .filter-body {
   flex: 1;
   display: grid;
-  grid-template-columns: 44% 56%;
+  grid-template-columns: 35% 65%;
   min-height: 0;
   overflow: hidden;
 }
@@ -512,7 +519,7 @@ h1, h2, h3, h4, h5 {
 .filter-option-btn {
   border: 1.5px solid #CBD5E1;
   background: white;
-  border-radius: 999px;
+  border-radius: 12px;
   padding: 12px 14px;
   color: #334155;
   text-align: left;
@@ -538,7 +545,7 @@ h1, h2, h3, h4, h5 {
   display: flex;
   gap: 10px;
   background: white;
-  box-shadow: 0 -8px 18px rgba(15, 76, 117, 0.08);
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
 }
 
 .filter-btn {

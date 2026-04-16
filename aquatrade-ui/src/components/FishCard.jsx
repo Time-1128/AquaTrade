@@ -5,15 +5,6 @@ export default function FishCard({ fish, onAdd }) {
 
   const { state, dispatch } = useApp();
 
-  const freshness = fish.freshness || 80;
-
-  const freshnessColor =
-    freshness >= 90
-      ? "#2ECC71"
-      : freshness >= 75
-      ? "#F6C90E"
-      : "#E74C3C";
-
   const stock = Number(fish.stock || 0);
 
   const cartItem = state.cart.find((i) => i.id === fish.id);
@@ -23,6 +14,42 @@ export default function FishCard({ fish, onAdd }) {
 
   const canAdd = remainingStock > 0;
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+
+  // Freshness calculation
+ const freshnessText = useMemo(() => {
+  if (!fish.catchDateTime) return "";
+
+  const catchTime = new Date(fish.catchDateTime).getTime();
+  const now = Date.now();
+  const diffMs = now - catchTime;
+
+  const diffMins = Math.floor(diffMs / (1000 * 60));
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffMins < 60) {
+    return `🕒 Caught ${diffMins} mins ago`;
+  } 
+  else if (diffHours < 24) {
+    return `🕒 Caught ${diffHours} hrs ago`;
+  } 
+  else {
+    const remainingHours = diffHours % 24;
+    return `🕒 Caught ${diffDays}d ${remainingHours}h ago`;
+  }
+}, [fish.catchDateTime]);
+
+  const freshnessColor = useMemo(() => {
+  if (!fish.catchDateTime) return "#6B7280";
+
+  const catchTime = new Date(fish.catchDateTime).getTime();
+  const now = Date.now();
+  const diffHours = (now - catchTime) / (1000 * 60 * 60);
+
+  if (diffHours < 6) return "#16A34A"; // green (very fresh)
+  if (diffHours < 24) return "#F59E0B"; // orange (moderate)
+  return "#6B7280"; // gray (old - neutral, not error)
+}, [fish.catchDateTime]);
 
   const handleAdd = (e) => {
 
@@ -58,12 +85,13 @@ export default function FishCard({ fish, onAdd }) {
   return (
 
     <div
-      className="card"
+      className="card product-card"
       style={{
         cursor: "pointer",
         overflow: "visible",
         position: "relative",
-        opacity: stock === 0 ? 0.6 : 1
+        opacity: stock === 0 ? 0.6 : 1,
+        padding: 0,
       }}
       onClick={() => dispatch({ type: "SELECT_PRODUCT", payload: fish })}
     >
@@ -91,9 +119,12 @@ export default function FishCard({ fish, onAdd }) {
       <div
         style={{
           background: `${fish.color || "#00B4D8"}20`,
-          padding: "20px",
+          padding: "16px",
           textAlign: "center",
-          fontSize: "48px"
+          minHeight: "148px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
         }}
       >
 
@@ -103,10 +134,11 @@ export default function FishCard({ fish, onAdd }) {
             src={imageList[activeImageIndex]}
             alt={fish.name}
             style={{
-              width: "80px",
-              height: "80px",
+              width: "100%",
+              maxWidth: "220px",
+              height: "120px",
               objectFit: "cover",
-              borderRadius: "10px"
+              borderRadius: "16px"
             }}
           />
 
@@ -140,17 +172,23 @@ export default function FishCard({ fish, onAdd }) {
           </div>
         )}
 
-        <div
-          style={{
-            position: "absolute",
-            bottom: "8px",
-            right: "8px",
-            width: "10px",
-            height: "10px",
-            borderRadius: "50%",
-            background: freshnessColor
-          }}
-        />
+        {freshnessText && (
+          <div
+            style={{
+              position: "absolute",
+              bottom: "8px",
+              right: "8px",
+              fontSize: "12px",
+              color: freshnessColor,
+              fontWeight: 600,
+              background: "rgba(255,255,255,0.9)",
+              padding: "2px 6px",
+              borderRadius: "6px"
+            }}
+          >
+            {freshnessText}
+          </div>
+        )}
 
       </div>
 

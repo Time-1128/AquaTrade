@@ -8,18 +8,32 @@ const defaultFilters = {
   discounts: [],
   ratings: [],
   distanceRanges: [],
+  freshnessRanges: [],
 };
 
 const filterCategories = [
   {
     id: "fishTypes",
-    label: "Fish Type",
+    label: "Category",
     icon: "🐠",
     multi: true,
     options: [
       { id: "Sea", label: "Sea" },
       { id: "Freshwater", label: "Freshwater" },
       { id: "Canal/Lake", label: "Canal/Lake" },
+    ],
+  },
+  {
+    id: "freshnessRanges",
+    label: "Freshness",
+    icon: "🕒",
+    multi: true,
+    options: [
+      { id: "within2h", label: "Within 2 hours" },
+      { id: "within6h", label: "Within 6 hours" },
+      { id: "within12h", label: "Within 12 hours" },
+      { id: "within24h", label: "Within 24 hours" },
+      { id: "more1d", label: "More than 1 day" },
     ],
   },
   {

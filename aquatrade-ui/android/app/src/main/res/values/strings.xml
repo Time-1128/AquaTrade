@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">AquaTrade</string>
+    <string name="title_activity_main">AquaTrade</string>
+    <string name="package_name">com.aquatrade.app</string>
+    <string name="custom_url_scheme">com.aquatrade.app</string>
+</resources>

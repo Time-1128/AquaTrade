@@ -5,21 +5,18 @@ export default function CartPage() {
 
   const { state, dispatch } = useApp();
 
-  const { cart = [], orders = [] } = state;
+  const { cart = [], user } = state;
 
   /* SAFE TOTAL CALCULATIONS */
 
   const total = cart.reduce((s, i) => s + Number(i.price || 0) * Number(i.qty || 0), 0);
 
-  const deliveryFee = total > 500 ? 0 : 40;
+  const bookingFee = Math.round(total * 0.05);
 
-  const bookingFee = Math.round(total * 0.1);
+  const availableTokens = Number(user?.tokens || 0);
+  const hasCoupons = availableTokens > 0;
 
-  const orderCount = Array.isArray(orders) ? orders.length : 0;
-
-  const discount = orderCount < 3 ? Math.round(total * 0.2) : 0;
-
-  const grand = Math.max(total - discount + deliveryFee + bookingFee, 0);
+  const grand = hasCoupons ? 0 : bookingFee;
 
   /* UPDATE QTY */
 
@@ -270,54 +267,69 @@ export default function CartPage() {
                       <div
                         style={{
                           display: "flex",
-                          border: "2px solid #E2E8F0",
-                          borderRadius: "10px",
-                          overflow: "hidden"
+                          alignItems: "center",
+                          gap: "8px"
                         }}
                       >
 
                         <button
                           onClick={() =>
-                            updateQty(item.id, item.qty - 1, item.stock)
+                            updateQty(item.id, Math.max(0.25, item.qty - 0.25), item.stock)
                           }
                           style={{
                             background: "white",
-                            border: "none",
+                            border: "2px solid #E2E8F0",
                             width: "32px",
                             height: "32px",
                             fontSize: "16px",
                             cursor: "pointer",
-                            color: "#0A3D62"
+                            color: "#0A3D62",
+                            borderRadius: "8px"
                           }}
                         >
                           −
                         </button>
 
-                        <span
-                          style={{
-                            width: "28px",
-                            textAlign: "center",
-                            fontFamily: "'Syne', sans-serif",
-                            fontWeight: 800,
-                            fontSize: "14px",
-                            color: "#0A3D62"
-                          }}
-                        >
-                          {item.qty}
-                        </span>
+                        <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                          <input
+                            type="number"
+                            step="0.25"
+                            min="0.25"
+                            value={item.qty}
+                            onChange={(e) => {
+                              const val = parseFloat(e.target.value);
+                              if (!isNaN(val) && val >= 0.25) {
+                                updateQty(item.id, val, item.stock);
+                              }
+                            }}
+                            style={{
+                              width: "60px",
+                              textAlign: "center",
+                              border: "2px solid #E2E8F0",
+                              borderRadius: "8px",
+                              fontFamily: "'Syne', sans-serif",
+                              fontWeight: 800,
+                              fontSize: "14px",
+                              color: "#0A3D62",
+                              padding: "4px"
+                            }}
+                          />
+                          <span style={{ fontSize: "12px", color: "#64748B", fontWeight: 700 }}>kg</span>
+                        </div>
 
                         <button
                           onClick={() =>
-                            updateQty(item.id, item.qty + 1, item.stock)
+                            updateQty(item.id, item.qty + 0.25, item.stock)
                           }
                           style={{
                             background: "white",
-                            border: "none",
+                            border: "2px solid #E2E8F0",
                             width: "32px",
                             height: "32px",
                             fontSize: "16px",
                             cursor: "pointer",
-                            color: "#0A3D62"
+                            color: "#0A3D62",
+                            borderRadius: "8px"
                           }}
                         >
                           +
@@ -379,20 +391,13 @@ export default function CartPage() {
 
               {[
 
-                { label: "Subtotal", value: `₹${total}` },
+                { label: "Booking Fee", value: `₹${bookingFee}` },
 
-                {
-                  label: "Delivery fee",
-                  value: deliveryFee === 0 ? "FREE 🎉" : `₹${deliveryFee}`
-                },
-
-                { label: "Token booking fee", value: `₹${bookingFee}` },
-
-                ...(discount > 0
+                ...(hasCoupons
                   ? [
                       {
-                        label: "🎁 First order discount",
-                        value: `-₹${discount}`,
+                        label: "Coupon Applied",
+                        value: "1",
                         highlight: true
                       }
                     ]

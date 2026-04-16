@@ -9,7 +9,6 @@ export default function ProductDetailPage() {
 
   const [qty, setQty] = useState(1);
   const [toast, setToast] = useState("");
-  const [activeTab, setActiveTab] = useState("details");
   const [activeImageIndex, setActiveImageIndex] = useState(0);
 
   useEffect(() => {
@@ -258,93 +257,97 @@ export default function ProductDetailPage() {
 
         </div>
 
-        {/* TABS */}
+        <div style={{ padding: "16px", display: "flex", flexDirection: "column", gap: "22px" }}>
 
-        <div style={{ display: "flex", padding: "0 16px" }}>
-          {["details", "seller"].map((t) => (
-            <button
-              key={t}
-              onClick={() => setActiveTab(t)}
+          <section>
+            <h3
               style={{
-                flex: 1,
-                padding: "10px",
-                border: "none",
-                background: "none",
-                borderBottom:
-                  activeTab === t
-                    ? "3px solid #00B4D8"
-                    : "3px solid transparent",
-                color:
-                  activeTab === t ? "#00B4D8" : "#718096",
                 fontFamily: "'Syne', sans-serif",
                 fontWeight: 700,
-                cursor: "pointer"
+                fontSize: "18px",
+                marginBottom: "10px"
               }}
             >
-              {t}
-            </button>
-          ))}
-        </div>
+              About this item
+            </h3>
+            <p style={{ color: "#4A5568", lineHeight: 1.7, marginBottom: "8px" }}>
+              {fish.description || "No description provided."}
+            </p>
+          </section>
 
-        {/* TAB CONTENT */}
-
-        <div style={{ padding: "16px" }}>
-
-          {activeTab === "details" && (
-            <>
-              <h3
-                style={{
-                  fontFamily: "'Syne', sans-serif",
-                  fontWeight: 700
-                }}
-              >
-                About this fish
-              </h3>
-
-              <p style={{ color: "#4A5568" }}>
-                {fish.description}
+          <section style={{ background: "#F8FAFC", borderRadius: "18px", padding: "16px" }}>
+            <h3
+              style={{
+                fontFamily: "'Syne', sans-serif",
+                fontWeight: 700,
+                fontSize: "18px",
+                marginBottom: "12px"
+              }}
+            >
+              Seller Information
+            </h3>
+            <p style={{ fontWeight: 700, color: "#0A3D62", marginBottom: "6px" }}>
+              🏬 {fish.sellerShopName || "AquaTrade Seller"}
+            </p>
+            {fish.sellerName ? (
+              <p style={{ color: "#4A5568", marginBottom: "6px" }}>👤 {fish.sellerName}</p>
+            ) : null}
+            <p style={{ color: "#4A5568", marginBottom: "6px" }}>
+              📞 {fish.sellerPhone || "Not provided"}
+            </p>
+            <p style={{ color: "#4A5568", marginBottom: "6px" }}>
+              📍 {fish.location?.address || fish.address || fish.sellerAddress || "Location unavailable"}
+            </p>
+            {typeof fish.distanceKm === "number" && (
+              <p style={{ color: "#4A5568", marginBottom: "6px" }}>
+                🚚 {fish.distanceKm.toFixed(1)} km away
               </p>
-            </>
-          )}
-
-          {activeTab === "seller" && (
-            <>
-              <p>🏬 Shop: {fish.sellerShopName || "AquaTrade Seller"}</p>
-              <p>🎣 Seller: {fish.sellerName || "Seller"}</p>
-              <p>📞 Phone: {fish.sellerPhone || "Not provided"}</p>
-              <p>
-                📍 {fish.location?.address || fish.address || fish.sellerAddress || "Location unavailable"}
+            )}
+            {fish.rating && (
+              <p style={{ color: "#4A5568", marginBottom: "10px" }}>
+                ⭐ {fish.rating.toFixed(1)} ({fish.reviews || 0} reviews)
               </p>
-
-              <div style={{ display: "flex", gap: "8px", marginTop: "10px" }}>
-                <button
-                  onClick={openMaps}
-                  className="btn-secondary"
-                  disabled={!(fish.location?.address || fish.address || fish.sellerAddress || (fish.location?.lat && fish.location?.lng))}
-                  style={{ flex: 1 }}
-                >
-                  View on Maps
-                </button>
-                <button
-                  onClick={() => {
-                    if (!fish.sellerPhone) return;
-                    window.location.href = `tel:${fish.sellerPhone}`;
-                  }}
-                  className="btn-primary"
-                  disabled={!fish.sellerPhone}
-                  style={{ flex: 1, background: fish.sellerPhone ? "#2ECC71" : "#9CA3AF" }}
-                >
-                  Call Seller
-                </button>
-              </div>
+            )}
+            <div style={{ display: "grid", gap: "10px" }}>
               <button
                 type="button"
-                style={{ marginTop: "8px", width: "100%", border: "1px dashed #94A3B8", borderRadius: "10px", padding: "10px", background: "#F8FAFC", color: "#64748B" }}
+                onClick={() => {
+                  if (!fish.sellerPhone) return;
+                  window.location.href = `tel:${fish.sellerPhone}`;
+                }}
+                className="btn-primary"
+                disabled={!fish.sellerPhone}
+                style={{
+                  width: "100%",
+                  background: fish.sellerPhone ? "#2ECC71" : "#9CA3AF",
+                  border: "none",
+                  borderRadius: "12px",
+                  padding: "12px",
+                  fontWeight: 700,
+                  cursor: fish.sellerPhone ? "pointer" : "not-allowed"
+                }}
               >
-                Chat with Seller (Coming Soon)
+                Call Seller
               </button>
-            </>
-          )}
+              <button
+                onClick={openMaps}
+                type="button"
+                className="btn-secondary"
+                style={{
+                  width: "100%",
+                  borderRadius: "12px",
+                  border: "1px solid #94A3B8",
+                  padding: "12px",
+                  background: "white",
+                  color: "#0F4C75",
+                  fontWeight: 700,
+                  cursor: "pointer"
+                }}
+              >
+                View on Maps
+              </button>
+            </div>
+          </section>
 
         </div>
 
@@ -365,24 +368,33 @@ export default function ProductDetailPage() {
           background: "white",
           padding: "12px 20px",
           display: "flex",
-          gap: "10px"
+          gap: "10px",
+          boxShadow: "0 -4px 12px rgba(0,0,0,0.05)"
         }}
       >
 
-        <button onClick={() => setQty((q) => Math.max(1, q - 1))}>
+        <button 
+          style={{ padding: "0 16px", background: "#F1F5F9", border: "none", borderRadius: "10px", fontSize: "18px", fontWeight: 800, color: "#0A3D62", cursor: "pointer" }}
+          onClick={() => setQty((q) => Math.max(0.25, q - 0.25))}
+        >
           −
         </button>
 
-        <span>{qty}</span>
+        <div style={{ padding: "0 16px", display: "flex", alignItems: "center", justifyContent: "center", minWidth: "60px", background: "#F8FAFC", borderRadius: "10px", fontWeight: 800, color: "#0A3D62", fontSize: "14px" }}>
+          {qty}kg
+        </div>
 
-        <button onClick={() => setQty((q) => q + 1)}>
+        <button 
+          style={{ padding: "0 16px", background: "#F1F5F9", border: "none", borderRadius: "10px", fontSize: "18px", fontWeight: 800, color: "#0A3D62", cursor: "pointer" }}
+          onClick={() => setQty((q) => q + 0.25)}
+        >
           +
         </button>
 
         <button
           onClick={addToCart}
           className="btn-primary"
-          style={{ flex: 1 }}
+          style={{ flex: 1, padding: "12px", fontSize: "14px" }}
         >
           Add {qty}kg – ₹{displayPrice * qty}
         </button>

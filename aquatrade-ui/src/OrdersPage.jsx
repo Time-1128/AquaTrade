@@ -1,13 +1,83 @@
 import { useEffect, useState } from "react";
-import { collection, getDocs, query, where } from "firebase/firestore";
+import { collection, getDocs, query, where, updateDoc, doc, increment } from "firebase/firestore";
 import { auth, db } from "./firebase.config";
 import { useApp } from "./context/AppContext";
 import BottomNav from "./components/BottomNav";
 
 export default function OrdersPage() {
-  const { dispatch } = useApp();
+  const { state, dispatch } = useApp();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [ratingOrder, setRatingOrder] = useState(null);
+  const [rating, setRating] = useState(0);
+  const [review, setReview] = useState("");
+
+  const submitRating = async () => {
+    if (!ratingOrder || !rating) return;
+    try {
+      await updateDoc(doc(db, "orders", ratingOrder.id), {
+        rating,
+        review,
+        ratedAt: new Date(),
+      });
+      setOrders(orders.map(o => o.id === ratingOrder.id ? { ...o, rating, review } : o));
+      setRatingOrder(null);
+      setRating(0);
+      setReview("");
+    } catch (error) {
+      console.error("Failed to submit rating:", error);
+    }
+  };
+
+  const openMaps = (order) => {
+    if (order.location?.lat && order.location?.lng) {
+      window.open(`https://www.google.com/maps/dir/?api=1&destination=${order.location.lat},${order.location.lng}`);
+    } else if (order.address) {
+      window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(order.address)}`);
+    } else {
+      alert("Address not available to map.");
+    }
+  };
+
+  const cancelOrder = async (order) => {
+    if (!window.confirm("Are you sure you want to cancel this order?")) return;
+
+    try {
+      const orderTime = order.createdAt?.seconds * 1000 || Date.now();
+      const isWithin15Mins = (Date.now() - orderTime) <= 15 * 60 * 1000;
+
+      await updateDoc(doc(db, "orders", order.id), {
+        status: "Cancelled"
+      });
+
+      if (isWithin15Mins) {
+        if (order.usedCoupon) {
+          await updateDoc(doc(db, "users", auth.currentUser.uid), {
+            tokens: increment(1)
+          });
+          if (state.user) {
+            dispatch({ type: "SET_USER", payload: { ...state.user, tokens: (state.user.tokens || 0) + 1 } });
+          }
+        } else {
+          await updateDoc(doc(db, "users", auth.currentUser.uid), {
+            walletBalance: increment((order.bookingAmount || 0))
+          });
+          if (state.user) {
+            dispatch({ type: "SET_USER", payload: { ...state.user, walletBalance: (state.user.walletBalance || 0) + (order.bookingAmount || 0) } });
+          }
+        }
+        alert("Order cancelled. Payment refunded.");
+      } else {
+        alert("Order cancelled. Payment not refundable after time limit.");
+      }
+
+      setOrders(orders.map(o => o.id === order.id ? { ...o, status: "Cancelled" } : o));
+
+    } catch (err) {
+      console.error(err);
+      alert("Failed to cancel order.");
+    }
+  };
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -91,8 +161,8 @@ export default function OrdersPage() {
                   </p>
                   <span
                     style={{
-                      background: order.status === "Completed" ? "#DCFCE7" : "#E0F2FE",
-                      color: order.status === "Completed" ? "#166534" : "#075985",
+                      background: order.status === "Completed" ? "#DCFCE7" : order.status === "Cancelled" ? "#FEE2E2" : "#E0F2FE",
+                      color: order.status === "Completed" ? "#166534" : order.status === "Cancelled" ? "#991B1B" : "#075985",
                       borderRadius: "999px",
                       padding: "4px 10px",
                       fontSize: "11px",
@@ -109,13 +179,149 @@ export default function OrdersPage() {
                   Pickup: {order.address || "Address unavailable"}
                 </p>
                 <p style={{ marginTop: "6px", color: "#0A3D62", fontWeight: 700 }}>
-                  Token Paid: ₹{order.total || 0}
+                  Paid: {order.usedCoupon ? "1 Coupon" : `₹${order.bookingAmount || order.total || 0}`}
                 </p>
+                <div style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
+                  <button
+                    onClick={() => openMaps(order)}
+                    style={{
+                      background: "#E0F2FE", color: "#0A3D62", border: "none", borderRadius: "8px", padding: "6px 12px", fontSize: "12px", fontWeight: 700, cursor: "pointer", flex: 1
+                    }}
+                  >
+                    📍 Get Directions
+                  </button>
+                  {order.status !== "Completed" && order.status !== "Cancelled" && (
+                    <button
+                      onClick={() => cancelOrder(order)}
+                      style={{
+                        background: "#FEF2F2", color: "#EF4444", border: "1px solid #FECACA", borderRadius: "8px", padding: "6px 12px", fontSize: "12px", fontWeight: 700, cursor: "pointer", flex: 1
+                      }}
+                    >
+                      Cancel Order
+                    </button>
+                  )}
+                </div>
+                {order.status === "Completed" && !order.rating && (
+                  <button
+                    onClick={() => setRatingOrder(order)}
+                    style={{
+                      marginTop: "8px",
+                      background: "#2ECC71",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "8px",
+                      padding: "6px 12px",
+                      fontSize: "12px",
+                      fontWeight: 700,
+                      cursor: "pointer"
+                    }}
+                  >
+                    Rate Seller ⭐
+                  </button>
+                )}
+                {order.rating && (
+                  <p style={{ marginTop: "6px", fontSize: "12px", color: "#2ECC71" }}>
+                    Rated: {"⭐".repeat(order.rating)} {order.rating}/5
+                  </p>
+                )}
               </div>
             ))}
           </div>
         )}
       </div>
+
+      {ratingOrder && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(0,0,0,0.5)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000
+          }}
+          onClick={() => setRatingOrder(null)}
+        >
+          <div
+            style={{
+              background: "white",
+              borderRadius: "16px",
+              padding: "20px",
+              maxWidth: "300px",
+              width: "90%"
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 style={{ textAlign: "center", color: "#0A3D62" }}>Rate Your Experience</h3>
+            <div style={{ display: "flex", justifyContent: "center", gap: "8px", margin: "16px 0" }}>
+              {[1,2,3,4,5].map(star => (
+                <button
+                  key={star}
+                  onClick={() => setRating(star)}
+                  style={{
+                    fontSize: "24px",
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    color: star <= rating ? "#FFD700" : "#E0E0E0"
+                  }}
+                >
+                  ⭐
+                </button>
+              ))}
+            </div>
+            <textarea
+              placeholder="Optional review..."
+              value={review}
+              onChange={(e) => setReview(e.target.value)}
+              style={{
+                width: "100%",
+                height: "60px",
+                border: "1px solid #E0E0E0",
+                borderRadius: "8px",
+                padding: "8px",
+                fontSize: "14px",
+                marginBottom: "16px"
+              }}
+            />
+            <div style={{ display: "flex", gap: "8px" }}>
+              <button
+                onClick={() => setRatingOrder(null)}
+                style={{
+                  flex: 1,
+                  background: "#E0E0E0",
+                  color: "#333",
+                  border: "none",
+                  borderRadius: "8px",
+                  padding: "10px",
+                  cursor: "pointer"
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={submitRating}
+                disabled={!rating}
+                style={{
+                  flex: 1,
+                  background: rating ? "#2ECC71" : "#E0E0E0",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "8px",
+                  padding: "10px",
+                  cursor: rating ? "pointer" : "not-allowed"
+                }}
+              >
+                Submit
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <BottomNav />
     </div>

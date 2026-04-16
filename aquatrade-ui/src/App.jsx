@@ -5,18 +5,33 @@ import HomePage from "./HomePage";
 import ProductDetailPage from "./ProductDetailPage";
 import CartPage from "./CartPage";
 import ProfilePage from "./ProfilePage";
-import ProfileSetup from "./ProfileSetup";   // ← NEW
+import ProfileSetup from "./ProfileSetup";
 import SellerDashboard from "./SellerDashboard";
 import CheckoutPage from "./CheckoutPage";
 import OrdersPage from "./OrdersPage";
 
+import { useEffect } from "react";
 import { AppProvider, useApp } from "./context/AppContext";
 
 import "./globals.css";
 
 function AppRouter() {
-  const { state } = useApp();
-  const { currentPage } = state;
+  const { state, dispatch } = useApp();
+  const { currentPage, user } = state;
+
+  useEffect(() => {
+    if (user && user.role) {
+      const isSeller = user.role === "seller";
+      const buyerOnlyRoutes = ["home", "product", "cart", "checkout", "orders"];
+      const sellerOnlyRoutes = ["seller"];
+
+      if (isSeller && buyerOnlyRoutes.includes(currentPage)) {
+        dispatch({ type: "SET_PAGE", payload: "seller" });
+      } else if (!isSeller && sellerOnlyRoutes.includes(currentPage)) {
+        dispatch({ type: "SET_PAGE", payload: "home" });
+      }
+    }
+  }, [currentPage, user, dispatch]);
 
   switch (currentPage) {
     case "landing":

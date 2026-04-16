@@ -37,6 +37,7 @@ function reducer(state, action) {
       return { ...state, user: action.payload };
 
     case "LOGOUT":
+      localStorage.removeItem("userRole");
       return { ...initialState, currentPage: "login", askProfileSetup: false };
 
     case "SET_SEARCH":
@@ -146,6 +147,10 @@ export function AppProvider({ children }) {
               ...userData
             },
           });
+
+          if (userData.role) {
+            localStorage.setItem("userRole", userData.role);
+          }
 
           if (askProfileSetupRef.current || !isProfileComplete(userData)) {
             if (askProfileSetupRef.current) {

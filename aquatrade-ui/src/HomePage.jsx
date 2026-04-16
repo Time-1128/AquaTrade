@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useApp } from "./context/AppContext";
-import { db } from "./firebase.config";
+import { db, auth } from "./firebase.config";
 import { collection, doc, getDocs, updateDoc } from "firebase/firestore";
+import { signOut } from "firebase/auth";
 import FishCard from "./components/FishCard";
 import FilterPanel from "./components/FilterPanel";
 import BottomNav from "./components/BottomNav";
@@ -293,6 +294,30 @@ export default function HomePage() {
     });
   };
 
+  const matchesFreshnessRange = (catchDateTime, ranges = []) => {
+    if (!ranges.length) return true;
+    if (!catchDateTime) return false;
+    const catchTime = new Date(catchDateTime).getTime();
+    const now = Date.now();
+    const diffHours = (now - catchTime) / (1000 * 60 * 60);
+    return ranges.some((range) => {
+      switch (range) {
+        case "within2h":
+          return diffHours <= 2;
+        case "within6h":
+          return diffHours <= 6;
+        case "within12h":
+          return diffHours <= 12;
+        case "within24h":
+          return diffHours <= 24;
+        case "more1d":
+          return diffHours > 24;
+        default:
+          return true;
+      }
+    });
+  };
+
   const filtered = withDistance.filter((f) => {
 
     if (!f) return false;
@@ -324,6 +349,10 @@ export default function HomePage() {
     }
 
     if (!matchesDistanceRange(f.distanceKm, filters.distanceRanges || [])) {
+      return false;
+    }
+
+    if (!matchesFreshnessRange(f.catchDateTime, filters.freshnessRanges || [])) {
       return false;
     }
 
@@ -423,57 +452,82 @@ export default function HomePage() {
                 AquaTrade
               </h1>
               <p style={{ fontSize: "13px", color: "#D1E9F6" }}>
-                Fresh catches from trusted sellers
+                Fresh products from trusted sellers
               </p>
             </div>
           </div>
 
-          <div style={{ position: "relative" }}>
+          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+            <div style={{ position: "relative" }}>
 
-            <button
-              onClick={() =>
-                dispatch({
-                  type: "SET_PAGE",
-                  payload: "cart"
-                })
-              }
-              style={{
-                background: "rgba(255,255,255,0.12)",
-                border: "none",
-                borderRadius: "12px",
-                padding: "8px 12px",
-                color: "white",
-                fontSize: "18px",
-                cursor: "pointer"
-              }}
-            >
-              🛒
-            </button>
-
-            {cartCount > 0 && (
-
-              <span
+              <button
+                onClick={() =>
+                  dispatch({
+                    type: "SET_PAGE",
+                    payload: "cart"
+                  })
+                }
                 style={{
-                  position: "absolute",
-                  top: "-6px",
-                  right: "-6px",
-                  background: "#FF6B6B",
+                  background: "rgba(255,255,255,0.12)",
+                  border: "none",
+                  borderRadius: "12px",
+                  padding: "8px 12px",
                   color: "white",
-                  borderRadius: "50%",
-                  width: "20px",
-                  height: "20px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: "11px",
-                  fontWeight: 800
+                  fontSize: "18px",
+                  cursor: "pointer"
                 }}
               >
-                {cartCount}
-              </span>
+                🛒
+              </button>
 
-            )}
+              {cartCount > 0 && (
 
+                <span
+                  style={{
+                    position: "absolute",
+                    top: "-6px",
+                    right: "-6px",
+                    background: "#FF6B6B",
+                    color: "white",
+                    borderRadius: "50%",
+                    width: "20px",
+                    height: "20px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: "11px",
+                    fontWeight: 800
+                  }}
+                >
+                  {cartCount}
+                </span>
+
+              )}
+
+            </div>
+
+            <button
+              onClick={async () => {
+                try {
+                  await signOut(auth);
+                } catch (err) {
+                  console.error("Logout failed:", err);
+                }
+                dispatch({ type: "LOGOUT" });
+              }}
+              style={{
+                background: "rgba(255,255,255,0.18)",
+                border: "none",
+                borderRadius: "10px",
+                padding: "8px 10px",
+                color: "white",
+                cursor: "pointer",
+                fontSize: "12px",
+                fontWeight: 600,
+              }}
+            >
+              Logout
+            </button>
           </div>
 
         </div>
@@ -503,7 +557,7 @@ export default function HomePage() {
                   payload: e.target.value
                 })
               }
-              placeholder="Search fish..."
+              placeholder="Search products..."
               style={{
                 flex: 1,
                 border: "none",

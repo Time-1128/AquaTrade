@@ -30,10 +30,11 @@ export default function CheckoutPage() {
 
   const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
 
-  const baseTokenBookingAmount = 10;
+  const bookingFee = Math.round(total * 0.05);
   const availableTokens = Number(user?.tokens || 0);
+  const walletBalance = user?.walletBalance !== undefined ? Number(user.walletBalance) : 500;
   const canUseToken = availableTokens > 0;
-  const payableAmount = useToken && canUseToken ? 0 : baseTokenBookingAmount;
+  const payableAmount = useToken && canUseToken ? 0 : bookingFee;
 
   const placeOrder = async () => {
 
@@ -43,6 +44,14 @@ export default function CheckoutPage() {
     }
 
     setLoading(true);
+
+    if (!canUseToken || !useToken) {
+      if (walletBalance < bookingFee) {
+        alert("Not enough balance or coupons to complete token booking.");
+        setLoading(false);
+        return;
+      }
+    }
 
     try {
       const currentUser = auth.currentUser;
@@ -70,19 +79,30 @@ export default function CheckoutPage() {
         createdAt: serverTimestamp(),
       };
 
+      const usedCoupon = useToken && canUseToken;
+
       await addDoc(collection(db, "orders"), {
         ...orderData,
         total: payableAmount,
-        tokenUsed: useToken && canUseToken,
+        usedCoupon: usedCoupon,
+        bookingAmount: usedCoupon ? 0 : bookingFee,
       });
 
-      if (useToken && canUseToken) {
+      if (usedCoupon) {
         await updateDoc(doc(db, "users", currentUser.uid), {
           tokens: increment(-1),
         });
         dispatch({
           type: "SET_USER",
           payload: { ...user, tokens: Math.max(availableTokens - 1, 0) },
+        });
+      } else {
+        await updateDoc(doc(db, "users", currentUser.uid), {
+          walletBalance: increment(-bookingFee),
+        });
+        dispatch({
+          type: "SET_USER",
+          payload: { ...user, walletBalance: walletBalance - bookingFee },
         });
       }
 
@@ -107,6 +127,19 @@ export default function CheckoutPage() {
       dispatch({ type: "ADD_ORDER", payload: order });
 
       dispatch({ type: "CLEAR_CART" });
+
+      // Check for coupon reward
+      if (total > 2000) {
+        await updateDoc(doc(db, "users", currentUser.uid), {
+          tokens: increment(1),
+        });
+        const currentTokens = useToken && canUseToken ? Math.max(availableTokens - 1, 0) : availableTokens;
+        dispatch({
+          type: "SET_USER",
+          payload: { ...user, tokens: currentTokens + 1 },
+        });
+        alert("🎉 You earned a free coupon for your next order!");
+      }
 
       setStep("success");
 
@@ -231,34 +264,41 @@ export default function CheckoutPage() {
                 {useToken && canUseToken ? (
                   <>
                     <span style={{ textDecoration: "line-through", opacity: 0.8, marginRight: "8px" }}>
-                      ₹{baseTokenBookingAmount}
+                      ₹{bookingFee}
                     </span>
-                    <span style={{ color: "#86EFAC" }}>₹0</span>
+                    <span style={{ color: "#86EFAC" }}>₹{payableAmount}</span>
                   </>
                 ) : (
-                  `₹${baseTokenBookingAmount}`
+                  `₹${payableAmount}`
                 )}
               </h2>
             </div>
 
             {canUseToken && (
-              <button
-                type="button"
-                onClick={() => setUseToken((prev) => !prev)}
-                style={{
-                  width: "100%",
-                  borderRadius: "12px",
-                  border: useToken ? "2px solid #2ECC71" : "1px solid #D1D5DB",
-                  background: useToken ? "#ECFDF5" : "white",
-                  color: "#0A3D62",
-                  padding: "12px",
-                  marginBottom: "12px",
-                  fontWeight: 700,
-                  cursor: "pointer",
-                }}
-              >
-                {useToken ? "1 token applied" : "Use Token"} · Remaining tokens: {availableTokens}
-              </button>
+               <button
+                 type="button"
+                 onClick={() => setUseToken((prev) => !prev)}
+                 style={{
+                   width: "100%",
+                   borderRadius: "12px",
+                   border: useToken ? "2px solid #2ECC71" : "1px solid #D1D5DB",
+                   background: useToken ? "#ECFDF5" : "white",
+                   color: "#0A3D62",
+                   padding: "12px",
+                   marginBottom: "12px",
+                   fontWeight: 700,
+                   cursor: "pointer",
+                 }}
+               >
+                 {useToken ? "1 coupon applied" : "Use Coupon"} · Remaining coupons: {availableTokens}
+               </button>
+            )}
+
+            {(!canUseToken || !useToken) && (
+              <div style={{ marginBottom: "16px", padding: "12px", background: "#F1F5F9", borderRadius: "12px", color: "#0A3D62", fontWeight: 700, fontSize: "14px", display: "flex", justifyContent: "space-between" }}>
+                <span>Paid from Wallet:</span>
+                <span>₹{bookingFee} (bal: ₹{walletBalance})</span>
+              </div>
             )}
 
             <button
@@ -266,7 +306,7 @@ export default function CheckoutPage() {
               disabled={loading}
               onClick={placeOrder}
             >
-              {loading ? "Processing..." : `Pay ₹${payableAmount}`}
+              {loading ? "Processing..." : `Proceed to Booking – ₹${payableAmount}`}
             </button>
 
           </>

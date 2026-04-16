@@ -118,10 +118,21 @@ export default function ProfilePage() {
 
       <div className="scrollable-content" style={{ padding: "14px" }}>
         <div style={cardStyle}>
-          <p style={{ color: "#6B7280", fontSize: "12px" }}>Role</p>
-          <p style={{ color: themePrimary, fontWeight: 800, fontSize: "16px", marginBottom: "10px" }}>
-            {isSeller ? "Seller" : "Buyer"}
-          </p>
+          <p style={{ color: "#6B7280", fontSize: "12px", marginBottom: "4px" }}>Role</p>
+          <div style={{ marginBottom: "12px" }}>
+            <span style={{
+              background: isSeller ? "#DCFCE7" : "#E0F2FE",
+              color: isSeller ? "#166534" : "#0A3D62",
+              padding: "4px 12px",
+              borderRadius: "999px",
+              fontSize: "13px",
+              fontWeight: 800,
+              display: "inline-block",
+              border: `1px solid ${isSeller ? "#86EFAC" : "#7DD3FC"}`
+            }}>
+              {isSeller ? "Seller" : "Buyer"}
+            </span>
+          </div>
 
           <label style={{ fontSize: "12px", color: "#334155", fontWeight: 700 }}>Full Name</label>
           <input className="input-field" value={form.name} disabled={!editing} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
@@ -133,13 +144,19 @@ export default function ProfilePage() {
           <input className="input-field" value={form.phoneNumber} disabled={!editing} onChange={(e) => setForm((f) => ({ ...f, phoneNumber: e.target.value }))} />
 
           <label style={{ fontSize: "12px", color: "#334155", fontWeight: 700, marginTop: "8px", display: "block" }}>Address</label>
-          <textarea className="input-field" value={form.address} disabled={!editing} onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))} />
+          <textarea
+            className="input-field"
+            value={form.address}
+            disabled={!editing}
+            onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))}
+            style={{ minHeight: "100px", lineHeight: 1.7, whiteSpace: "pre-wrap", wordBreak: "break-word" }}
+          />
 
           {editing && (
             <button
               type="button"
               onClick={useCurrentLocation}
-              style={{ width: "100%", marginTop: "8px", border: "1px solid #D1D5DB", borderRadius: "10px", background: "white", padding: "10px", cursor: "pointer", color: themePrimary, fontWeight: 700 }}
+              style={{ width: "100%", marginTop: "8px", border: "1px solid #D1D5DB", borderRadius: "12px", background: "white", padding: "12px", cursor: "pointer", color: themePrimary, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}
             >
               📍 Use current location
             </button>
@@ -192,35 +209,32 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        <div style={{ ...cardStyle, marginTop: "12px" }}>
-          <p style={{ color: "#6B7280", fontSize: "12px" }}>Wallet</p>
-          <h3 style={{ color: themePrimary, fontWeight: 800, fontSize: "22px", marginTop: "4px" }}>
-            ₹0
-          </h3>
-          <p style={{ color: "#0F766E", fontSize: "13px", marginTop: "6px", fontWeight: 600 }}>
-            Wallet feature coming soon
-          </p>
-          {!isSeller && (
-            <div
-              style={{
-                marginTop: "10px",
-                background: "#F8FAFC",
-                border: "1px solid #E2E8F0",
-                borderRadius: "10px",
-                padding: "10px 12px",
-              }}
-            >
-              <p style={{ color: "#64748B", fontSize: "12px" }}>Tokens</p>
-              <p style={{ color: "#0F4C75", fontWeight: 800, fontSize: "16px", marginTop: "2px" }}>
-                You have {Number(user?.tokens || 0)} tokens left
+        {!isSeller && (
+          <div style={{ ...cardStyle, marginTop: "12px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+            <div style={{ background: "#F5F8FB", padding: "16px", borderRadius: "14px", border: "1px solid #E2E8F0" }}>
+              <p style={{ color: "#64748B", fontSize: "12px" }}>Wallet Balance</p>
+              <h3 style={{ color: themePrimary, fontWeight: 900, fontSize: "24px", marginTop: "4px" }}>
+                ₹{user?.walletBalance !== undefined ? user?.walletBalance : 500}
+              </h3>
+            </div>
+            
+            <div style={{ background: "#ECFDF5", padding: "16px", borderRadius: "14px", border: "1px solid #A7F3D0" }}>
+              <p style={{ color: "#065F46", fontSize: "12px", fontWeight: 700 }}>Coupons</p>
+              <h3 style={{ color: "#047857", fontWeight: 900, fontSize: "24px", marginTop: "4px" }}>
+                {user?.tokens || 0}
+              </h3>
+              <p style={{ color: "#059669", fontSize: "11px", marginTop: "4px", fontWeight: 600 }}>
+                You have {user?.tokens || 0} free coupons
               </p>
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
         <button
           onClick={logout}
-          style={{ width: "100%", marginTop: "12px", border: "2px solid #FECACA", borderRadius: "12px", background: "#FFF1F2", color: "#DC2626", padding: "12px", fontWeight: 700, cursor: "pointer" }}
+          style={{ width: "100%", marginTop: "12px", border: "1px solid #FCA5A5", borderRadius: "14px", background: "#FEF2F2", color: "#B91C1C", padding: "12px", fontWeight: 700, cursor: "pointer", transition: "all 0.2s ease" }}
+          onMouseEnter={(e) => (e.currentTarget.style.background = "#FEE2E2")}
+          onMouseLeave={(e) => (e.currentTarget.style.background = "#FEF2F2")}
         >
           Logout
         </button>

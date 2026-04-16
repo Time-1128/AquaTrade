@@ -285,7 +285,7 @@ export default function SellerDashboard() {
       });
       setImageFiles([]);
       setActiveTab("listings");
-      showToast(uploadIssue || "Fish listed successfully");
+      showToast(uploadIssue || "Product listed successfully");
 
       // Keep save fast and do background sync for buyer feed.
       refreshBuyerFeed().catch((err) => {
@@ -293,7 +293,7 @@ export default function SellerDashboard() {
       });
     } catch (error) {
       console.error(error);
-      showToast(error?.message || "Failed to list fish. Please try again.");
+      showToast(error?.message || "Failed to list product. Please try again.");
     } finally {
       setSubmitting(false);
     }
@@ -429,7 +429,7 @@ export default function SellerDashboard() {
       <div style={{ display: "flex", background: "white", borderBottom: `1px solid ${COLORS.cardBorder}` }}>
         {[
           { id: "dashboard", label: "Dashboard" },
-          { id: "addFish", label: "Add Fish" },
+          { id: "addFish", label: "Add Product" },
           { id: "listings", label: "Listings" },
           { id: "orders", label: "Orders" },
         ].map((tab) => (
@@ -464,7 +464,7 @@ export default function SellerDashboard() {
                 <div style={cardStyle}>
                   <h3 style={{ fontSize: "17px", color: COLORS.primary, fontWeight: 800 }}>Get started in 3 steps</h3>
                   <ol style={{ marginTop: "10px", paddingLeft: "18px", color: COLORS.textSoft, lineHeight: 1.8, fontSize: "14px" }}>
-                    <li>Add your first fish</li>
+                    <li>Add your first product</li>
                     <li>Set price and stock</li>
                     <li>Start receiving orders</li>
                   </ol>
@@ -482,28 +482,28 @@ export default function SellerDashboard() {
                       cursor: "pointer",
                     }}
                   >
-                    + Add Your First Fish
+                    + Add Your First Product
                   </button>
                 </div>
                 <div style={cardStyle}>
                   <p style={{ color: COLORS.secondary, fontWeight: 700, marginBottom: "6px" }}>Analytics Preview</p>
-                  <p style={{ color: COLORS.textSoft, fontSize: "14px" }}>Your analytics will appear after your first order.</p>
+                  <p style={{ color: COLORS.textSoft, fontSize: "14px" }}>No recent activity yet. Start by adding your first product.</p>
                 </div>
               </>
             ) : (
               <>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "10px" }}>
-                  <div style={{ ...cardStyle, textAlign: "center", padding: "14px 8px" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px" }}>
+                  <div style={{ ...cardStyle, textAlign: "center", padding: "16px 10px" }}>
                     <p style={{ color: COLORS.textSoft, fontSize: "12px" }}>Revenue</p>
-                    <p style={{ color: COLORS.primary, fontWeight: 800, marginTop: "4px", fontSize: "16px" }}>₹{totalRevenue}</p>
+                    <p style={{ color: COLORS.primary, fontWeight: 900, marginTop: "6px", fontSize: "20px" }}>₹{totalRevenue}</p>
                   </div>
-                  <div style={{ ...cardStyle, textAlign: "center", padding: "14px 8px" }}>
+                  <div style={{ ...cardStyle, textAlign: "center", padding: "16px 10px" }}>
                     <p style={{ color: COLORS.textSoft, fontSize: "12px" }}>Orders</p>
-                    <p style={{ color: COLORS.secondary, fontWeight: 800, marginTop: "4px", fontSize: "16px" }}>{totalOrders}</p>
+                    <p style={{ color: COLORS.secondary, fontWeight: 900, marginTop: "6px", fontSize: "20px" }}>{totalOrders}</p>
                   </div>
-                  <div style={{ ...cardStyle, textAlign: "center", padding: "14px 8px" }}>
+                  <div style={{ ...cardStyle, textAlign: "center", padding: "16px 10px" }}>
                     <p style={{ color: COLORS.textSoft, fontSize: "12px" }}>Active</p>
-                    <p style={{ color: COLORS.accent, fontWeight: 800, marginTop: "4px", fontSize: "16px" }}>{activeListings}</p>
+                    <p style={{ color: COLORS.accent, fontWeight: 900, marginTop: "6px", fontSize: "20px" }}>{activeListings}</p>
                   </div>
                 </div>
                 <button
@@ -519,7 +519,7 @@ export default function SellerDashboard() {
                     cursor: "pointer",
                   }}
                 >
-                  + Add Fish
+                  + Add Product
                 </button>
               </>
             )}
@@ -528,10 +528,10 @@ export default function SellerDashboard() {
 
         {activeTab === "addFish" && (
           <div style={cardStyle}>
-            <h3 style={{ color: COLORS.primary, fontSize: "18px", fontWeight: 800, marginBottom: "14px" }}>List Your Catch</h3>
+            <h3 style={{ color: COLORS.primary, fontSize: "18px", fontWeight: 800, marginBottom: "14px" }}>List Your Product</h3>
             <input
               className="input-field"
-              placeholder="Fish Name *"
+              placeholder="Item Name *"
               value={form.name}
               onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
             />
@@ -542,7 +542,7 @@ export default function SellerDashboard() {
               onChange={(e) => setForm((f) => ({ ...f, fishType: e.target.value }))}
               style={{ marginTop: "10px" }}
             >
-              <option value="">Select fish type *</option>
+              <option value="">Select category *</option>
               {fishTypeOptions.map((type) => (
                 <option key={type} value={type}>
                   {type}
@@ -565,31 +565,39 @@ export default function SellerDashboard() {
                 width: "100%",
                 border: `1px solid ${COLORS.cardBorder}`,
                 background: "white",
-                borderRadius: "10px",
-                padding: "10px",
+                borderRadius: "12px",
+                padding: "12px",
                 cursor: "pointer",
                 color: COLORS.primary,
-                fontWeight: 600,
+                fontWeight: 700,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "10px",
               }}
             >
-              {geoLoading ? "Detecting location..." : "Use current location"}
+              📍 {geoLoading ? "Detecting location..." : "Use current location"}
             </button>
             <button
               type="button"
               onClick={openMapPicker}
               style={{
-                marginTop: "8px",
+                marginTop: "10px",
                 width: "100%",
                 border: `1px solid ${COLORS.cardBorder}`,
                 background: "#F8FAFC",
-                borderRadius: "10px",
-                padding: "10px",
+                borderRadius: "12px",
+                padding: "12px",
                 cursor: "pointer",
                 color: COLORS.primary,
-                fontWeight: 600,
+                fontWeight: 700,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "10px",
               }}
             >
-              Pick from Map
+              🗺️ Pick from Map
             </button>
             {form.location && (
               <div style={{ marginTop: "10px", padding: "10px", borderRadius: "10px", background: "#F0F9FF", fontSize: "12px", color: COLORS.textSoft }}>
@@ -632,35 +640,69 @@ export default function SellerDashboard() {
               onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
               style={{ marginTop: "10px" }}
             />
-            <input
-              type="file"
-              accept="image/*"
-              multiple
-              onChange={(e) => setImageFiles(Array.from(e.target.files || []).slice(0, 5))}
-              style={{ marginTop: "10px", marginBottom: "12px" }}
-            />
-            <input
-              type="file"
-              accept="image/*"
-              capture="environment"
-              onChange={(e) =>
-                setImageFiles((prev) =>
-                  [...prev, ...Array.from(e.target.files || [])].slice(0, 5)
-                )
-              }
-              style={{ marginTop: "6px", marginBottom: "12px" }}
-            />
-            <p style={{ marginTop: "-6px", marginBottom: "10px", fontSize: "12px", color: COLORS.textSoft }}>
-              Upload from gallery or take photo with camera (max 5 images)
-            </p>
+            <div style={{ marginTop: "10px", marginBottom: "12px", border: `1px solid ${COLORS.cardBorder}`, borderRadius: "14px", padding: "14px", background: "#F8FAFC" }}>
+              <p style={{ fontSize: "14px", fontWeight: 800, marginBottom: "10px", color: COLORS.textDark }}>Upload Images (max 5)</p>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+                <label
+                  htmlFor="productImages"
+                  style={{
+                    cursor: "pointer",
+                    background: "white",
+                    border: `1px solid ${COLORS.cardBorder}`,
+                    borderRadius: "12px",
+                    padding: "12px 10px",
+                    textAlign: "center",
+                    fontWeight: 700,
+                    color: COLORS.primary,
+                  }}
+                >
+                  📁 Select images
+                </label>
+                <label
+                  htmlFor="productCamera"
+                  style={{
+                    cursor: "pointer",
+                    background: "white",
+                    border: `1px solid ${COLORS.cardBorder}`,
+                    borderRadius: "12px",
+                    padding: "12px 10px",
+                    textAlign: "center",
+                    fontWeight: 700,
+                    color: COLORS.primary,
+                  }}
+                >
+                  📸 Take photo
+                </label>
+              </div>
+              <input
+                id="productImages"
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={(e) => setImageFiles(Array.from(e.target.files || []).slice(0, 5))}
+                style={{ display: "none" }}
+              />
+              <input
+                id="productCamera"
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onChange={(e) =>
+                  setImageFiles((prev) =>
+                    [...prev, ...Array.from(e.target.files || [])].slice(0, 5)
+                  )
+                }
+                style={{ display: "none" }}
+              />
+            </div>
             {imageFiles.length > 0 && (
-              <div style={{ display: "flex", gap: "8px", marginBottom: "12px", overflowX: "auto" }}>
+              <div style={{ display: "flex", gap: "10px", marginBottom: "12px", overflowX: "auto" }}>
                 {imageFiles.map((file) => (
                   <img
                     key={`${file.name}-${file.size}`}
                     src={URL.createObjectURL(file)}
                     alt={file.name}
-                    style={{ width: "62px", height: "62px", borderRadius: "10px", objectFit: "cover", border: "1px solid #E5E7EB" }}
+                    style={{ width: "72px", height: "72px", borderRadius: "14px", objectFit: "cover", border: "1px solid #E5E7EB" }}
                   />
                 ))}
               </div>
@@ -680,7 +722,7 @@ export default function SellerDashboard() {
                 opacity: submitting ? 0.7 : 1,
               }}
             >
-              {submitting ? "Saving..." : "List Fish for Sale"}
+              {submitting ? "Saving..." : "List Product for Sale"}
             </button>
           </div>
         )}
@@ -692,8 +734,8 @@ export default function SellerDashboard() {
             ) : sellerProducts.length === 0 ? (
               <div style={{ ...cardStyle, textAlign: "center", padding: "36px 20px" }}>
                 <p style={{ fontSize: "38px" }}>🐟</p>
-                <p style={{ marginTop: "8px", color: COLORS.primary, fontWeight: 700 }}>No fish listed yet</p>
-                <p style={{ marginTop: "4px", color: COLORS.textSoft, fontSize: "14px" }}>Start selling by adding your first fish</p>
+                <p style={{ marginTop: "8px", color: COLORS.primary, fontWeight: 700 }}>No products listed yet</p>
+                <p style={{ marginTop: "4px", color: COLORS.textSoft, fontSize: "14px" }}>Start selling by adding your first product</p>
                 <button
                   onClick={() => setActiveTab("addFish")}
                   style={{
@@ -707,7 +749,7 @@ export default function SellerDashboard() {
                     cursor: "pointer",
                   }}
                 >
-                  + Add Fish
+                  + Add Product
                 </button>
               </div>
             ) : (
@@ -791,7 +833,7 @@ export default function SellerDashboard() {
                 <p style={{ marginTop: "8px", color: COLORS.primary, fontWeight: 700 }}>No orders yet</p>
                 <p style={{ marginTop: "4px", color: COLORS.textSoft, fontSize: "14px" }}>Orders from customers will appear here</p>
                 <p style={{ marginTop: "6px", color: COLORS.secondary, fontSize: "13px", fontWeight: 600 }}>
-                  List your fish to start receiving orders
+                  Add products to start receiving orders
                 </p>
               </div>
             ) : (
