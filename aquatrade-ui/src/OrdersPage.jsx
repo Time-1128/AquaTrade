@@ -112,7 +112,7 @@ export default function OrdersPage() {
     <div className="app-container">
       <div className="page-header">
         <h1 style={{ fontSize: "22px", fontWeight: 800 }}>My Orders</h1>
-        <p style={{ marginTop: "4px", fontSize: "12px", opacity: 0.8 }}>
+        <p style={{ marginTop: "4px", fontSize: "14px", opacity: 0.85 }}>
           Track your bookings and pickup details
         </p>
       </div>
@@ -155,8 +155,8 @@ export default function OrdersPage() {
                   padding: "14px",
                 }}
               >
-                <div style={{ display: "flex", justifyContent: "space-between", gap: "10px" }}>
-                  <p style={{ color: "#0A3D62", fontWeight: 800 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", gap: "10px", alignItems: "center" }}>
+                  <p style={{ color: "#0A3D62", fontWeight: 800, fontSize: "16px" }}>
                     {order.orderId || order.id.slice(-6).toUpperCase()}
                   </p>
                   <span
@@ -164,28 +164,30 @@ export default function OrdersPage() {
                       background: order.status === "Completed" ? "#DCFCE7" : order.status === "Cancelled" ? "#FEE2E2" : "#E0F2FE",
                       color: order.status === "Completed" ? "#166534" : order.status === "Cancelled" ? "#991B1B" : "#075985",
                       borderRadius: "999px",
-                      padding: "4px 10px",
-                      fontSize: "11px",
+                      padding: "5px 12px",
+                      fontSize: "13px",
                       fontWeight: 700,
+                      flexShrink: 0,
                     }}
                   >
                     {order.status || "Confirmed"}
                   </span>
                 </div>
-                <p style={{ marginTop: "6px", fontSize: "13px", color: "#334155" }}>
+                <p style={{ marginTop: "6px", fontSize: "15px", color: "#334155", fontWeight: 500 }}>
                   Items: {(order.items || []).map((item) => item.name).join(", ") || "Fish order"}
                 </p>
-                <p style={{ marginTop: "4px", fontSize: "13px", color: "#334155" }}>
+                <p style={{ marginTop: "4px", fontSize: "14px", color: "#334155" }}>
                   Pickup: {order.address || "Address unavailable"}
                 </p>
-                <p style={{ marginTop: "6px", color: "#0A3D62", fontWeight: 700 }}>
+                <p style={{ marginTop: "6px", color: "#0A3D62", fontWeight: 700, fontSize: "15px" }}>
                   Paid: {order.usedCoupon ? "1 Coupon" : `₹${order.bookingAmount || order.total || 0}`}
                 </p>
                 <div style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
                   <button
                     onClick={() => openMaps(order)}
                     style={{
-                      background: "#E0F2FE", color: "#0A3D62", border: "none", borderRadius: "8px", padding: "6px 12px", fontSize: "12px", fontWeight: 700, cursor: "pointer", flex: 1
+                      background: "#E0F2FE", color: "#0A3D62", border: "none", borderRadius: "10px",
+                      padding: "9px 14px", fontSize: "14px", fontWeight: 700, cursor: "pointer", flex: 1
                     }}
                   >
                     📍 Get Directions
@@ -194,7 +196,9 @@ export default function OrdersPage() {
                     <button
                       onClick={() => cancelOrder(order)}
                       style={{
-                        background: "#FEF2F2", color: "#EF4444", border: "1px solid #FECACA", borderRadius: "8px", padding: "6px 12px", fontSize: "12px", fontWeight: 700, cursor: "pointer", flex: 1
+                        background: "#FEF2F2", color: "#EF4444", border: "1px solid #FECACA",
+                        borderRadius: "10px", padding: "9px 14px", fontSize: "14px", fontWeight: 700,
+                        cursor: "pointer", flex: 1
                       }}
                     >
                       Cancel Order
@@ -205,22 +209,23 @@ export default function OrdersPage() {
                   <button
                     onClick={() => setRatingOrder(order)}
                     style={{
-                      marginTop: "8px",
+                      marginTop: "10px",
                       background: "#2ECC71",
                       color: "white",
                       border: "none",
-                      borderRadius: "8px",
-                      padding: "6px 12px",
-                      fontSize: "12px",
+                      borderRadius: "10px",
+                      padding: "9px 14px",
+                      fontSize: "14px",
                       fontWeight: 700,
-                      cursor: "pointer"
+                      cursor: "pointer",
+                      width: "100%",
                     }}
                   >
                     Rate Seller ⭐
                   </button>
                 )}
                 {order.rating && (
-                  <p style={{ marginTop: "6px", fontSize: "12px", color: "#2ECC71" }}>
+                  <p style={{ marginTop: "6px", fontSize: "14px", color: "#2ECC71", fontWeight: 600 }}>
                     Rated: {"⭐".repeat(order.rating)} {order.rating}/5
                   </p>
                 )}

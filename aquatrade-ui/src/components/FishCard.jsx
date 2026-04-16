@@ -194,15 +194,15 @@ export default function FishCard({ fish, onAdd }) {
 
       <div style={{ padding: "14px" }}>
 
-        <h3 style={{ fontSize: "16px", fontWeight: 800, color: "#1F2937" }}>
+        <h3 style={{ fontSize: "19px", fontWeight: 800, color: "#0F4C75", lineHeight: 1.2 }}>
           {fish.name}
         </h3>
 
-        <div style={{ fontSize: "13px", color: "#6B7280", marginTop: "2px" }}>
+        <div style={{ fontSize: "14px", color: "#6B7280", marginTop: "4px" }}>
           ⭐ {fish.rating || 4.5} ({fish.reviews || 0})
         </div>
 
-        <div style={{ fontSize: "12px", color: "#6B7280", marginTop: "6px" }}>
+        <div style={{ fontSize: "13px", color: "#6B7280", marginTop: "6px", lineHeight: 1.4 }}>
           {fish.sellerShopName || "AquaTrade Seller"} • {fish.sellerName || "Seller"}
         </div>
         {typeof fish.distanceKm === "number" && (
@@ -213,10 +213,10 @@ export default function FishCard({ fish, onAdd }) {
 
         <div
           style={{
-            fontSize: "12px",
+            fontSize: "14px",
             marginTop: "6px",
             fontWeight: 600,
-            color: stock === 0 ? "#E74C3C" : "#555"
+            color: stock === 0 ? "#E74C3C" : "#16A34A"
           }}
         >
           {stock === 0
@@ -232,7 +232,7 @@ export default function FishCard({ fish, onAdd }) {
           }}
         >
 
-          <div style={{ fontWeight: 800, fontSize: "18px", color: "#0F4C75" }}>
+          <div style={{ fontWeight: 900, fontSize: "20px", color: "#0F4C75", letterSpacing: "-0.5px" }}>
             ₹{fish.price}/kg
           </div>
 

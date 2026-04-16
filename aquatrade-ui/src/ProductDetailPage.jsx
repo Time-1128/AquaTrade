@@ -112,36 +112,36 @@ export default function ProductDetailPage() {
       >
 
         <button
-          onClick={() =>
-            dispatch({ type: "SET_PAGE", payload: "home" })
-          }
+          onClick={() => dispatch({ type: "SET_PAGE", payload: "home" })}
           style={{
             background: "#F0F9FF",
             border: "none",
             borderRadius: "12px",
-            padding: "8px 16px",
+            padding: "10px 18px",
             color: "#0A3D62",
             cursor: "pointer",
-            fontFamily: "'Syne', sans-serif",
-            fontWeight: 700
+            fontFamily: "'Inter', sans-serif",
+            fontWeight: 700,
+            fontSize: "15px",
+            minHeight: "44px",
           }}
         >
           ← Back
         </button>
 
         <button
-          onClick={() =>
-            dispatch({ type: "SET_PAGE", payload: "cart" })
-          }
+          onClick={() => dispatch({ type: "SET_PAGE", payload: "cart" })}
           style={{
             background: "#0A3D62",
             border: "none",
             borderRadius: "12px",
-            padding: "8px 16px",
+            padding: "10px 18px",
             color: "white",
             cursor: "pointer",
-            fontFamily: "'Syne', sans-serif",
-            fontWeight: 700
+            fontFamily: "'Inter', sans-serif",
+            fontWeight: 700,
+            fontSize: "15px",
+            minHeight: "44px",
           }}
         >
           🛒 Cart ({state.cart?.reduce((s, i) => s + i.qty, 0) || 0})
@@ -223,7 +223,7 @@ export default function ProductDetailPage() {
             {fish.name}
           </h1>
 
-          <p style={{ color: "#718096", fontSize: "13px" }}>
+          <p style={{ color: "#718096", fontSize: "15px", marginTop: "4px" }}>
             {fish.type} • {fish.category}
           </p>
 
@@ -241,9 +241,7 @@ export default function ProductDetailPage() {
           }}
         >
 
-          <p style={{ fontSize: "12px", opacity: 0.8 }}>
-            Seller Price
-          </p>
+          <p style={{ fontSize: "13px", opacity: 0.8, marginBottom: "4px" }}>Seller Price</p>
 
           <h2
             style={{
@@ -270,7 +268,7 @@ export default function ProductDetailPage() {
             >
               About this item
             </h3>
-            <p style={{ color: "#4A5568", lineHeight: 1.7, marginBottom: "8px" }}>
+            <p style={{ color: "#4A5568", lineHeight: 1.7, marginBottom: "8px", fontSize: "15px" }}>
               {fish.description || "No description provided."}
             </p>
           </section>
@@ -286,25 +284,21 @@ export default function ProductDetailPage() {
             >
               Seller Information
             </h3>
-            <p style={{ fontWeight: 700, color: "#0A3D62", marginBottom: "6px" }}>
-              🏬 {fish.sellerShopName || "AquaTrade Seller"}
-            </p>
+            <p style={{ fontWeight: 700, color: "#0A3D62", marginBottom: "8px", fontSize: "16px" }}>🏬 {fish.sellerShopName || "AquaTrade Seller"}</p>
             {fish.sellerName ? (
-              <p style={{ color: "#4A5568", marginBottom: "6px" }}>👤 {fish.sellerName}</p>
+              <p style={{ color: "#4A5568", marginBottom: "6px", fontSize: "15px" }}>👤 {fish.sellerName}</p>
             ) : null}
-            <p style={{ color: "#4A5568", marginBottom: "6px" }}>
-              📞 {fish.sellerPhone || "Not provided"}
-            </p>
-            <p style={{ color: "#4A5568", marginBottom: "6px" }}>
+            <p style={{ color: "#4A5568", marginBottom: "6px", fontSize: "15px" }}>📞 {fish.sellerPhone || "Not provided"}</p>
+            <p style={{ color: "#4A5568", marginBottom: "6px", fontSize: "15px" }}>
               📍 {fish.location?.address || fish.address || fish.sellerAddress || "Location unavailable"}
             </p>
             {typeof fish.distanceKm === "number" && (
-              <p style={{ color: "#4A5568", marginBottom: "6px" }}>
+              <p style={{ color: "#4A5568", marginBottom: "6px", fontSize: "15px" }}>
                 🚚 {fish.distanceKm.toFixed(1)} km away
               </p>
             )}
             {fish.rating && (
-              <p style={{ color: "#4A5568", marginBottom: "10px" }}>
+              <p style={{ color: "#4A5568", marginBottom: "12px", fontSize: "15px" }}>
                 ⭐ {fish.rating.toFixed(1)} ({fish.reviews || 0} reviews)
               </p>
             )}
@@ -373,19 +367,19 @@ export default function ProductDetailPage() {
         }}
       >
 
-        <button 
-          style={{ padding: "0 16px", background: "#F1F5F9", border: "none", borderRadius: "10px", fontSize: "18px", fontWeight: 800, color: "#0A3D62", cursor: "pointer" }}
+        <button
+          style={{ padding: "0 18px", background: "#F1F5F9", border: "none", borderRadius: "10px", fontSize: "22px", fontWeight: 800, color: "#0A3D62", cursor: "pointer", minHeight: "50px" }}
           onClick={() => setQty((q) => Math.max(0.25, q - 0.25))}
         >
           −
         </button>
 
-        <div style={{ padding: "0 16px", display: "flex", alignItems: "center", justifyContent: "center", minWidth: "60px", background: "#F8FAFC", borderRadius: "10px", fontWeight: 800, color: "#0A3D62", fontSize: "14px" }}>
+        <div style={{ padding: "0 16px", display: "flex", alignItems: "center", justifyContent: "center", minWidth: "70px", background: "#F8FAFC", borderRadius: "10px", fontWeight: 800, color: "#0A3D62", fontSize: "16px", minHeight: "50px" }}>
           {qty}kg
         </div>
 
-        <button 
-          style={{ padding: "0 16px", background: "#F1F5F9", border: "none", borderRadius: "10px", fontSize: "18px", fontWeight: 800, color: "#0A3D62", cursor: "pointer" }}
+        <button
+          style={{ padding: "0 18px", background: "#F1F5F9", border: "none", borderRadius: "10px", fontSize: "22px", fontWeight: 800, color: "#0A3D62", cursor: "pointer", minHeight: "50px" }}
           onClick={() => setQty((q) => q + 0.25)}
         >
           +
@@ -394,7 +388,7 @@ export default function ProductDetailPage() {
         <button
           onClick={addToCart}
           className="btn-primary"
-          style={{ flex: 1, padding: "12px", fontSize: "14px" }}
+          style={{ flex: 1, padding: "14px 12px", fontSize: "16px" }}
         >
           Add {qty}kg – ₹{displayPrice * qty}
         </button>

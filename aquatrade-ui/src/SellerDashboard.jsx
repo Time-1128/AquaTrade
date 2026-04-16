@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useApp } from "./context/AppContext";
+import logo from "./assets/logo.png";
 import { db, auth, storage } from "./firebase.config";
 import { signOut } from "firebase/auth";
 import {
@@ -38,6 +39,7 @@ export default function SellerDashboard() {
   const [mapLat, setMapLat] = useState("");
   const [mapLng, setMapLng] = useState("");
   const [toast, setToast] = useState("");
+  const [showRevenueModal, setShowRevenueModal] = useState(false);
   const [form, setForm] = useState({
     name: "",
     fishType: "",
@@ -370,18 +372,17 @@ export default function SellerDashboard() {
       <div
         style={{
           background: "linear-gradient(160deg, #2ECC71, #1F9D5A)",
-          padding: "24px 20px 18px",
+          padding: "20px 20px 16px",
           color: "white",
         }}
       >
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "8px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px" }}>
+          {/* Logo removed to keep header clean on mobile; text-only branding */}
           <div>
-            <h1 style={{ fontFamily: "Inter, sans-serif", fontSize: "24px", fontWeight: 800, lineHeight: 1.1 }}>
-              🐟 AquaTrade
-            </h1>
-            <p style={{ marginTop: "4px", opacity: 0.88, fontSize: "13px", fontWeight: 600 }}>Seller Dashboard</p>
-            <p style={{ marginTop: "8px", opacity: 0.75, fontSize: "13px" }}>
-              Welcome, {state.user?.shopName || state.user?.name || "Seller"}
+            <h1 style={{ fontFamily: "Inter, sans-serif", fontSize: "22px", fontWeight: 800, lineHeight: 1.1, color: "white", letterSpacing: "-0.5px" }}>AquaTrade</h1>
+            <p style={{ marginTop: "2px", opacity: 0.88, fontSize: "13px", fontWeight: 600, color: "rgba(255,255,255,0.9)" }}>Seller Dashboard</p>
+            <p style={{ marginTop: "1px", opacity: 0.75, fontSize: "13px", color: "rgba(255,255,255,0.8)" }}>
+              {state.user?.shopName || state.user?.name || "Seller"}
             </p>
           </div>
           <div style={{ display: "flex", gap: "8px" }}>
@@ -426,28 +427,18 @@ export default function SellerDashboard() {
         </div>
       </div>
 
-      <div style={{ display: "flex", background: "white", borderBottom: `1px solid ${COLORS.cardBorder}` }}>
+      {/* ── Seller Tabs: equal-width, no overflow ── */}
+      <div className="seller-tabs">
         {[
-          { id: "dashboard", label: "Dashboard" },
-          { id: "addFish", label: "Add Product" },
-          { id: "listings", label: "Listings" },
-          { id: "orders", label: "Orders" },
+          { id: "dashboard", label: "Dashboard"   },
+          { id: "addFish",   label: "Add Product" },
+          { id: "listings",  label: "Listings"    },
+          { id: "orders",    label: "Orders"      },
         ].map((tab) => (
           <button
             key={tab.id}
+            className={`seller-tab-btn${activeTab === tab.id ? " active" : ""}`}
             onClick={() => setActiveTab(tab.id)}
-            style={{
-              flex: 1,
-              padding: "12px 6px",
-              border: "none",
-              background: "none",
-              borderBottom: `3px solid ${activeTab === tab.id ? COLORS.accent : "transparent"}`,
-              color: activeTab === tab.id ? "#166534" : COLORS.textSoft,
-              fontFamily: "Inter, sans-serif",
-              fontWeight: 700,
-              fontSize: "12px",
-              cursor: "pointer",
-            }}
           >
             {tab.label}
           </button>
@@ -492,20 +483,100 @@ export default function SellerDashboard() {
               </>
             ) : (
               <>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px" }}>
-                  <div style={{ ...cardStyle, textAlign: "center", padding: "16px 10px" }}>
+                {/* ── Stat cards: clickable ── */}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "10px" }}>
+                  <button
+                    onClick={() => setShowRevenueModal(true)}
+                    style={{ ...cardStyle, textAlign: "center", padding: "14px 8px", cursor: "pointer", border: "none", width: "100%" }}
+                  >
                     <p style={{ color: COLORS.textSoft, fontSize: "12px" }}>Revenue</p>
-                    <p style={{ color: COLORS.primary, fontWeight: 900, marginTop: "6px", fontSize: "20px" }}>₹{totalRevenue}</p>
-                  </div>
-                  <div style={{ ...cardStyle, textAlign: "center", padding: "16px 10px" }}>
+                    <p style={{ color: COLORS.primary, fontWeight: 900, marginTop: "4px", fontSize: "20px" }}>₹{totalRevenue}</p>
+                    <p style={{ fontSize: "11px", color: COLORS.textSoft, marginTop: "2px" }}>tap for breakdown</p>
+                  </button>
+                  <button
+                    onClick={() => setActiveTab("orders")}
+                    style={{ ...cardStyle, textAlign: "center", padding: "14px 8px", cursor: "pointer", border: "none", width: "100%" }}
+                  >
                     <p style={{ color: COLORS.textSoft, fontSize: "12px" }}>Orders</p>
-                    <p style={{ color: COLORS.secondary, fontWeight: 900, marginTop: "6px", fontSize: "20px" }}>{totalOrders}</p>
-                  </div>
-                  <div style={{ ...cardStyle, textAlign: "center", padding: "16px 10px" }}>
+                    <p style={{ color: COLORS.secondary, fontWeight: 900, marginTop: "4px", fontSize: "20px" }}>{totalOrders}</p>
+                    <p style={{ fontSize: "11px", color: COLORS.textSoft, marginTop: "2px" }}>tap to view</p>
+                  </button>
+                  <button
+                    onClick={() => setActiveTab("listings")}
+                    style={{ ...cardStyle, textAlign: "center", padding: "14px 8px", cursor: "pointer", border: "none", width: "100%" }}
+                  >
                     <p style={{ color: COLORS.textSoft, fontSize: "12px" }}>Active</p>
-                    <p style={{ color: COLORS.accent, fontWeight: 900, marginTop: "6px", fontSize: "20px" }}>{activeListings}</p>
+                    <p style={{ color: COLORS.accent, fontWeight: 900, marginTop: "4px", fontSize: "20px" }}>{activeListings}</p>
+                    <p style={{ fontSize: "11px", color: COLORS.textSoft, marginTop: "2px" }}>tap to view</p>
+                  </button>
+                </div>
+
+                {/* ── Analytics section ── */}
+                <div style={cardStyle}>
+                  <p style={{ fontWeight: 800, fontSize: "16px", color: COLORS.textDark, marginBottom: "12px" }}>📊 Analytics</p>
+
+                  {/* Top Selling Product */}
+                  <div style={{ marginBottom: "12px" }}>
+                    <p style={{ fontSize: "13px", color: COLORS.textSoft, fontWeight: 600, marginBottom: "6px" }}>🏆 Top Selling Product</p>
+                    {(() => {
+                      const topItem = sellerOrders
+                        .flatMap((o) => o.sellerItems)
+                        .reduce((acc, item) => {
+                          acc[item.name] = (acc[item.name] || 0) + Number(item.quantity || 0);
+                          return acc;
+                        }, {});
+                      const topName = Object.entries(topItem).sort((a, b) => b[1] - a[1])[0];
+                      return topName ? (
+                        <div style={{ background: "#ECFDF5", borderRadius: "10px", padding: "10px 12px", display: "flex", justifyContent: "space-between" }}>
+                          <span style={{ fontWeight: 700, fontSize: "14px", color: COLORS.accent }}>{topName[0]}</span>
+                          <span style={{ fontSize: "13px", color: COLORS.textSoft }}>{topName[1]} kg sold</span>
+                        </div>
+                      ) : (
+                        <p style={{ fontSize: "13px", color: COLORS.textSoft }}>No sales data yet</p>
+                      );
+                    })()}
+                  </div>
+
+                  {/* Today's Activity */}
+                  <div style={{ marginBottom: "12px" }}>
+                    <p style={{ fontSize: "13px", color: COLORS.textSoft, fontWeight: 600, marginBottom: "6px" }}>📅 Today's Activity</p>
+                    {(() => {
+                      const today = new Date().toDateString();
+                      const todayOrders = sellerOrders.filter((o) => {
+                        const d = o.createdAt?.toDate ? o.createdAt.toDate() : new Date(o.createdAt?.seconds * 1000 || 0);
+                        return d.toDateString() === today;
+                      });
+                      return todayOrders.length > 0 ? (
+                        <div style={{ background: "#EFF6FF", borderRadius: "10px", padding: "10px 12px", display: "flex", justifyContent: "space-between" }}>
+                          <span style={{ fontWeight: 700, fontSize: "14px", color: "#1D4ED8" }}>{todayOrders.length} order{todayOrders.length !== 1 ? "s" : ""} today</span>
+                          <span style={{ fontSize: "13px", color: COLORS.textSoft
+                          }}>₹{todayOrders.reduce((s, o) => s + (o.sellerSubtotal || 0), 0)}</span>
+                        </div>
+                      ) : (
+                        <p style={{ fontSize: "13px", color: COLORS.textSoft }}>No orders today yet</p>
+                      );
+                    })()}
+                  </div>
+
+                  {/* Recent Orders */}
+                  <div>
+                    <p style={{ fontSize: "13px", color: COLORS.textSoft, fontWeight: 600, marginBottom: "6px" }}>📦 Recent Orders</p>
+                    {sellerOrders.length === 0 ? (
+                      <p style={{ fontSize: "13px", color: COLORS.textSoft }}>No orders yet</p>
+                    ) : (
+                      <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                        {sellerOrders.slice(0, 3).map((order) => (
+                          <div key={order.id} style={{ display: "flex", justifyContent: "space-between", padding: "8px 10px", background: "#F8FAFC", borderRadius: "8px" }}>
+                            <span style={{ fontSize: "13px", fontWeight: 700, color: COLORS.textDark }}>#{(order.orderId || order.id).slice(-6).toUpperCase()}</span>
+                            <span style={{ fontSize: "13px", color: COLORS.secondary, fontWeight: 700 }}>₹{order.sellerSubtotal || 0}</span>
+                            <span style={{ fontSize: "12px", padding: "2px 8px", borderRadius: "999px", background: order.status === "Completed" ? "#DCFCE7" : "#FEF3C7", color: order.status === "Completed" ? "#166534" : "#92400E", fontWeight: 700 }}>{order.status || "Pending"}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
+
                 <button
                   onClick={() => setActiveTab("addFish")}
                   style={{
@@ -514,8 +585,9 @@ export default function SellerDashboard() {
                     color: "white",
                     border: "none",
                     borderRadius: "12px",
-                    padding: "12px",
+                    padding: "13px",
                     fontWeight: 700,
+                    fontSize: "15px",
                     cursor: "pointer",
                   }}
                 >
@@ -903,11 +975,60 @@ export default function SellerDashboard() {
             color: "white",
             padding: "11px 18px",
             borderRadius: "999px",
-            fontSize: "13px",
+            fontSize: "14px",
             zIndex: 999,
           }}
         >
           {toast}
+        </div>
+      )}
+
+      {/* ── Revenue Breakdown Modal ── */}
+      {showRevenueModal && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.4)",
+            zIndex: 1000,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "20px",
+          }}
+          onClick={() => setShowRevenueModal(false)}
+        >
+          <div
+            style={{ background: "white", borderRadius: "16px", padding: "20px", width: "100%", maxWidth: "380px" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 style={{ color: COLORS.primary, fontSize: "18px", fontWeight: 800, marginBottom: "14px" }}>📊 Revenue Breakdown</h3>
+            <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderBottom: "1px solid #F1F5F9" }}>
+              <span style={{ fontSize: "14px", color: COLORS.textSoft }}>Completed Orders</span>
+              <span style={{ fontWeight: 800, color: COLORS.primary, fontSize: "14px" }}>₹{totalRevenue}</span>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderBottom: "1px solid #F1F5F9" }}>
+              <span style={{ fontSize: "14px", color: COLORS.textSoft }}>Pending Orders</span>
+              <span style={{ fontWeight: 800, color: COLORS.secondary, fontSize: "14px" }}>
+                ₹{sellerOrders.filter((o) => o.status !== "Completed").reduce((s, o) => s + (o.sellerSubtotal || 0), 0)}
+              </span>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0" }}>
+              <span style={{ fontSize: "14px", fontWeight: 700, color: COLORS.textDark }}>Total Pipeline</span>
+              <span style={{ fontWeight: 900, color: COLORS.accent, fontSize: "16px" }}>
+                ₹{sellerOrders.reduce((s, o) => s + (o.sellerSubtotal || 0), 0)}
+              </span>
+            </div>
+            {sellerOrders.length === 0 && (
+              <p style={{ fontSize: "13px", color: COLORS.textSoft, textAlign: "center", padding: "10px 0" }}>No order data yet</p>
+            )}
+            <button
+              onClick={() => setShowRevenueModal(false)}
+              style={{ width: "100%", marginTop: "14px", border: "none", borderRadius: "12px", background: COLORS.accent, color: "white", padding: "12px", fontWeight: 700, fontSize: "15px", cursor: "pointer" }}
+            >
+              Close
+            </button>
+          </div>
         </div>
       )}
 

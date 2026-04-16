@@ -53,7 +53,7 @@ export default function BottomNav() {
 
           {/* ICON */}
 
-          <span style={{ fontSize: "20px" }}>
+          <span style={{ fontSize: "28px" }}>
             {item.icon}
           </span>
 
@@ -86,7 +86,7 @@ export default function BottomNav() {
 
           {/* LABEL */}
 
-          <span style={{ fontSize: "11px" }}>
+          <span style={{ fontSize: "12px", fontWeight: 600 }}>
             {item.label}
           </span>
 

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useApp } from "./context/AppContext";
+import logo from "./assets/logo.png";
 
 export default function LandingPage() {
   const { dispatch } = useApp();
@@ -82,13 +83,14 @@ export default function LandingPage() {
         {/* Logo */}
         <div
           style={{
-            fontSize: "80px",
             marginBottom: "24px",
             animation: "pulse 2s infinite",
             filter: "drop-shadow(0 8px 20px rgba(0,180,216,0.5))",
+            display: "flex",
+            justifyContent: "center"
           }}
         >
-          🎣
+          <img src={logo} alt="AquaTrade Logo" style={{ maxHeight: "80px", width: "auto" }} />
         </div>
 
         <h1

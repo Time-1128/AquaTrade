@@ -7,6 +7,7 @@ const AppContext = createContext();
 
 const initialState = {
   currentPage: "landing",
+  pageHistory: [],          // stack for back navigation
   user: null,
   cart: [],
   orders: [],
@@ -30,15 +31,30 @@ const initialState = {
 function reducer(state, action) {
   switch (action.type) {
 
-    case "SET_PAGE":
-      return { ...state, currentPage: action.payload };
+    case "SET_PAGE": {
+      // Push previous page onto history stack (skip duplicates & auth pages)
+      const noHistory = ["landing", "login", "profileSetup"];
+      const prevPage = state.currentPage;
+      const newHistory =
+        !noHistory.includes(prevPage) && prevPage !== action.payload
+          ? [...state.pageHistory, prevPage]
+          : state.pageHistory;
+      return { ...state, currentPage: action.payload, pageHistory: newHistory };
+    }
+
+    case "BACK": {
+      const history = [...state.pageHistory];
+      const prev = history.pop();
+      if (!prev) return state; // nothing to go back to
+      return { ...state, currentPage: prev, pageHistory: history };
+    }
 
     case "SET_USER":
       return { ...state, user: action.payload };
 
     case "LOGOUT":
       localStorage.removeItem("userRole");
-      return { ...initialState, currentPage: "login", askProfileSetup: false };
+      return { ...initialState, currentPage: "login", pageHistory: [], askProfileSetup: false };
 
     case "SET_SEARCH":
       return { ...state, searchQuery: action.payload };
@@ -96,6 +112,27 @@ function reducer(state, action) {
 
     case "ADD_SELLER_PRODUCT":
       return { ...state, sellerProducts: [...state.sellerProducts, action.payload] };
+
+    // ── Coupon reward after purchase (1 per every 5 completed purchases) ──
+    case "PURCHASE_COMPLETE": {
+      const prev = state.user || {};
+      const prevTotal = Number(prev.totalPurchases || 0);
+      const newTotal = prevTotal + 1;
+      // Only reward if this exact purchase crosses a multiple of 5 AND we haven't already rewarded it
+      const lastRewarded = Number(prev.lastCouponAtPurchase || 0);
+      const shouldReward = newTotal % 5 === 0 && newTotal !== lastRewarded;
+      const tokensNow = Number(prev.tokens || 0);
+      return {
+        ...state,
+        user: {
+          ...prev,
+          totalPurchases: newTotal,
+          tokens: shouldReward ? tokensNow + 1 : tokensNow,
+          lastCouponAtPurchase: shouldReward ? newTotal : lastRewarded,
+        },
+        _couponEarned: shouldReward,
+      };
+    }
 
     default:
       return state;

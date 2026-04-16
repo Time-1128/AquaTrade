@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useApp } from "./context/AppContext";
+import logo from "./assets/logo.png";
 import { db, auth } from "./firebase.config";
 import { collection, doc, getDocs, updateDoc } from "firebase/firestore";
 import { signOut } from "firebase/auth";
@@ -110,8 +111,9 @@ export default function HomePage() {
     if (!user?.uid) return;
     setClaimingTokens(true);
     try {
+      // Give 1 starter coupon on first login only
       const currentTokens = Number(user?.tokens || 0);
-      const nextTokens = currentTokens > 0 ? currentTokens : 3;
+      const nextTokens = currentTokens > 0 ? currentTokens : 1;
       await updateDoc(doc(db, "users", user.uid), {
         tokens: nextTokens,
         tokenRewardClaimed: true,
@@ -121,10 +123,10 @@ export default function HomePage() {
         payload: { ...user, tokens: nextTokens, tokenRewardClaimed: true },
       });
       setShowTokenModal(false);
-      showToast("3 free tokens added to your account");
+      showToast("Welcome! 1 starter coupon added 🎁");
     } catch (error) {
       console.error("Token claim failed:", error);
-      showToast("Unable to claim tokens now");
+      showToast("Unable to claim coupon now");
     } finally {
       setClaimingTokens(false);
     }
@@ -435,15 +437,14 @@ export default function HomePage() {
           }}
         >
 
-          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            <span style={{ fontSize: "24px", color: "#FFFFFF" }}>🐟</span>
+          <div style={{ display: "flex", alignItems: "center" }}>
             <div>
               <h1
                 style={{
                   fontFamily: "'Inter', sans-serif",
-                  fontSize: "23px",
-                  fontWeight: 700,
-                  letterSpacing: "0.3px",
+                  fontSize: "22px",
+                  fontWeight: 800,
+                  letterSpacing: "-0.5px",
                   color: "#FFFFFF",
                   lineHeight: 1.1,
                   margin: 0,
@@ -451,7 +452,7 @@ export default function HomePage() {
               >
                 AquaTrade
               </h1>
-              <p style={{ fontSize: "13px", color: "#D1E9F6" }}>
+              <p style={{ fontSize: "14px", color: "#D1E9F6", marginTop: "2px" }}>
                 Fresh products from trusted sellers
               </p>
             </div>
@@ -691,24 +692,28 @@ export default function HomePage() {
               maxWidth: "360px",
               background: "white",
               borderRadius: "16px",
-              padding: "18px",
+              padding: "20px",
               boxShadow: "0 20px 40px rgba(0,0,0,0.2)",
               animation: "slideUp 0.3s ease",
             }}
           >
-            <h3 style={{ color: "#0F4C75", fontSize: "20px", fontWeight: 800 }}>
-              🎉 Welcome to AquaTrade!
+            <p style={{ fontSize: "32px", textAlign: "center", marginBottom: "10px" }}>🎁</p>
+            <h3 style={{ color: "#0F4C75", fontSize: "20px", fontWeight: 800, textAlign: "center" }}>
+              Welcome to AquaTrade!
             </h3>
-            <p style={{ marginTop: "8px", color: "#6B7280", fontSize: "14px" }}>
-              You received 3 free tokens
+            <p style={{ marginTop: "8px", color: "#6B7280", fontSize: "14px", textAlign: "center" }}>
+              You have 1 starter coupon to use on your first booking.
+            </p>
+            <p style={{ marginTop: "6px", color: "#059669", fontSize: "13px", textAlign: "center", fontWeight: 600 }}>
+              🎫 Earn more: 1 free coupon for every 5 purchases!
             </p>
             <button
               className="btn-primary"
-              style={{ marginTop: "14px" }}
+              style={{ marginTop: "16px" }}
               onClick={claimWelcomeTokens}
               disabled={claimingTokens}
             >
-              {claimingTokens ? "Claiming..." : "Claim Now"}
+              {claimingTokens ? "Claiming..." : "Claim Starter Coupon"}
             </button>
           </div>
         </div>

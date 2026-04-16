@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { useApp } from "./context/AppContext";
+import logo from "./assets/logo.png";
 import { auth, db } from "./firebase.config";
 import {
   RecaptchaVerifier,
@@ -167,7 +168,9 @@ export default function LoginPage() {
           overflow: "hidden",
         }}
       >
-        <div style={{ fontSize: "48px", marginBottom: "10px" }}>🐟</div>
+        <div style={{ marginBottom: "10px", display: "flex", justifyContent: "center" }}>
+          <img src={logo} alt="AquaTrade Logo" style={{ height: "40px", width: "auto" }} />
+        </div>
         <h1 style={{ fontSize: "28px", fontWeight: 800, color: "white", marginBottom: "6px" }}>Welcome to AquaTrade</h1>
         <p style={{ color: "rgba(255,255,255,0.82)", fontSize: "14px" }}>Login with Email or Phone OTP</p>
         <div
@@ -186,20 +189,13 @@ export default function LoginPage() {
 
       <div style={{ padding: "0 22px 40px", marginTop: "-8px", flex: 1 }}>
         <div style={{ background: "white", borderRadius: "18px", padding: "24px", boxShadow: "0 4px 20px rgba(0,0,0,0.06)" }}>
-          <div style={{ display: "flex", gap: "8px", marginBottom: "16px" }}>
+          <div style={{ display: "flex", gap: "8px", marginBottom: "18px" }}>
             <button
               type="button"
-              onClick={() => {
-                setMode("email");
-                setError("");
-              }}
+              onClick={() => { setMode("email"); setError(""); }}
               style={{
-                flex: 1,
-                border: "none",
-                borderRadius: "10px",
-                padding: "10px",
-                cursor: "pointer",
-                fontWeight: 700,
+                flex: 1, border: "none", borderRadius: "10px", padding: "13px 10px",
+                cursor: "pointer", fontWeight: 700, fontSize: "15px", minHeight: "48px",
                 background: mode === "email" ? "#0F4C75" : "#EEF2F7",
                 color: mode === "email" ? "white" : "#4B5563",
               }}
@@ -208,17 +204,10 @@ export default function LoginPage() {
             </button>
             <button
               type="button"
-              onClick={() => {
-                setMode("phone");
-                setError("");
-              }}
+              onClick={() => { setMode("phone"); setError(""); }}
               style={{
-                flex: 1,
-                border: "none",
-                borderRadius: "10px",
-                padding: "10px",
-                cursor: "pointer",
-                fontWeight: 700,
+                flex: 1, border: "none", borderRadius: "10px", padding: "13px 10px",
+                cursor: "pointer", fontWeight: 700, fontSize: "15px", minHeight: "48px",
                 background: mode === "phone" ? "#0F4C75" : "#EEF2F7",
                 color: mode === "phone" ? "white" : "#4B5563",
               }}
@@ -229,7 +218,7 @@ export default function LoginPage() {
 
           {mode === "email" ? (
             <>
-              <label style={{ display: "block", marginBottom: "6px", fontWeight: 700, color: "#0F4C75", fontSize: "13px" }}>Email</label>
+              <label style={{ display: "block", marginBottom: "6px", fontWeight: 700, color: "#0F4C75", fontSize: "15px" }}>Email</label>
               <input
                 className="input-field"
                 type="email"
@@ -238,7 +227,7 @@ export default function LoginPage() {
                 onChange={(e) => setEmail(e.target.value)}
               />
 
-              <label style={{ display: "block", marginBottom: "6px", marginTop: "12px", fontWeight: 700, color: "#0F4C75", fontSize: "13px" }}>Password</label>
+              <label style={{ display: "block", marginBottom: "6px", marginTop: "14px", fontWeight: 700, color: "#0F4C75", fontSize: "15px" }}>Password</label>
               <input
                 className="input-field"
                 type="password"
@@ -255,7 +244,7 @@ export default function LoginPage() {
             <>
               {phoneStep === "phone" ? (
                 <>
-                  <label style={{ display: "block", marginBottom: "6px", fontWeight: 700, color: "#0F4C75", fontSize: "13px" }}>Phone Number</label>
+                  <label style={{ display: "block", marginBottom: "6px", fontWeight: 700, color: "#0F4C75", fontSize: "15px" }}>Phone Number</label>
                   <input
                     className="input-field"
                     type="tel"
@@ -269,7 +258,7 @@ export default function LoginPage() {
                 </>
               ) : (
                 <>
-                  <p style={{ color: "#6B7280", marginBottom: "12px", fontSize: "14px" }}>Enter OTP sent to +91 {phone}</p>
+                  <p style={{ color: "#6B7280", marginBottom: "14px", fontSize: "15px" }}>Enter OTP sent to +91 {phone}</p>
                   <div style={{ display: "flex", gap: "8px", marginBottom: "14px", justifyContent: "center" }}>
                     {otp.map((digit, index) => (
                       <input
@@ -324,9 +313,9 @@ export default function LoginPage() {
             </>
           )}
 
-          {error && <p style={{ color: "#C0392B", fontSize: "13px", marginTop: "10px" }}>{error}</p>}
+          {error && <p style={{ color: "#C0392B", fontSize: "14px", marginTop: "12px", fontWeight: 500 }}>{error}</p>}
 
-          <p style={{ textAlign: "center", marginTop: "14px", color: "#6B7280", fontSize: "14px" }}>
+          <p style={{ textAlign: "center", marginTop: "16px", color: "#6B7280", fontSize: "15px" }}>
             Don't have an account?{" "}
             <button
               type="button"

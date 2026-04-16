@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useApp } from "./context/AppContext";
+import logo from "./assets/logo.png";
 import { db, auth } from "./firebase.config";
 import {
   createUserWithEmailAndPassword,
@@ -66,8 +67,8 @@ export default function ProfileSetup() {
     if (!form.role) return setError("Please select a role.");
     if (!form.address.trim()) return setError("Address is required.");
     if (form.role === "seller" && !form.phoneNumber.trim()) return setError("Phone number is required for sellers.");
-    if (form.phoneNumber && !/^\+?\d{10,15}$/.test(form.phoneNumber.replace(/\s/g, ""))) {
-      return setError("Enter a valid phone number.");
+    if (form.phoneNumber && !/^\d{10}$/.test(form.phoneNumber)) {
+      return setError("Enter a valid 10-digit phone number.");
     }
 
     if (form.role === "seller" && !form.shopName.trim()) {
@@ -135,11 +136,11 @@ export default function ProfileSetup() {
 
   const labelStyle = {
     fontWeight: 700,
-    fontSize: "13px",
+    fontSize: "15px",
     color: "#0F4C75",
     marginBottom: "6px",
     display: "block",
-    letterSpacing: "0.3px",
+    letterSpacing: "0.2px",
   };
 
   const roleCard = (value, emoji, title, subtitle) => {
@@ -157,9 +158,9 @@ export default function ProfileSetup() {
           cursor: "pointer",
         }}
       >
-        <p style={{ fontSize: "24px", marginBottom: "4px" }}>{emoji}</p>
-        <p style={{ color: "#0F4C75", fontWeight: 700, fontSize: "14px" }}>{title}</p>
-        <p style={{ color: "#6B7280", fontSize: "11px", marginTop: "2px" }}>{subtitle}</p>
+        <p style={{ fontSize: "26px", marginBottom: "6px" }}>{emoji}</p>
+        <p style={{ color: "#0F4C75", fontWeight: 700, fontSize: "15px" }}>{title}</p>
+        <p style={{ color: "#6B7280", fontSize: "13px", marginTop: "3px" }}>{subtitle}</p>
       </button>
     );
   };
@@ -175,7 +176,9 @@ export default function ProfileSetup() {
           overflow: "hidden",
         }}
       >
-        <div style={{ fontSize: "48px", marginBottom: "10px" }}>🐟</div>
+        <div style={{ marginBottom: "10px", display: "flex", justifyContent: "center" }}>
+          <img src={logo} alt="AquaTrade Logo" style={{ height: "40px", width: "auto" }} />
+        </div>
         <h1 style={{ fontSize: "26px", fontWeight: 800, color: "white", marginBottom: "8px" }}>Create your AquaTrade account</h1>
         <p style={{ color: "rgba(255,255,255,0.8)", fontSize: "14px" }}>Sign up with email and set your profile</p>
         <div
@@ -217,9 +220,14 @@ export default function ProfileSetup() {
           <input
             className="input-field"
             type="tel"
-            placeholder="+91 9876543210"
+            inputMode="numeric"
+            maxLength={10}
+            placeholder="10 digit number"
             value={form.phoneNumber}
-            onChange={(e) => setForm((f) => ({ ...f, phoneNumber: e.target.value }))}
+            onChange={(e) => {
+              const digits = e.target.value.replace(/\D/g, "").slice(0, 10);
+              setForm((f) => ({ ...f, phoneNumber: digits }));
+            }}
           />
 
           <label style={{ ...labelStyle, marginTop: "10px" }}>I am a *</label>
