@@ -3,9 +3,10 @@ import BottomNav from "./components/BottomNav";
 
 /* ── Fixed booking-fee tiers ── */
 function getBookingFee(total) {
-  if (total <= 500) return 5;
-  if (total <= 2000) return 10;
-  return 20;
+  if (total < 500) return 25;
+  if (total <= 1000) return 45;
+  if (total <= 5000) return 75;
+  return 100;
 }
 
 export default function CartPage() {
@@ -91,7 +92,7 @@ export default function CartPage() {
 
       {/* CONTENT */}
 
-      <div className="scrollable-content" style={{ padding: "16px" }}>
+      <div className="scrollable-content" style={{ padding: "16px", paddingBottom: "100px" }}>
 
         {cart.length === 0 ? (
 
@@ -301,7 +302,7 @@ export default function CartPage() {
                 <span style={{ fontSize: "14px", color: "#718096" }}>
                   Booking Fee
                   <span style={{ fontSize: "12px", marginLeft: "6px", color: "#94A3B8" }}>
-                    ({total <= 500 ? "₹0–500" : total <= 2000 ? "₹500–2000" : "₹2000+"})
+                    ({total < 500 ? "<₹500" : total <= 1000 ? "₹500–1000" : total <= 5000 ? "₹1000–5000" : ">₹5000"})
                   </span>
                 </span>
                 <span style={{ fontWeight: 700, fontSize: "14px", color: "#0A3D62" }}>₹{bookingFee}</span>

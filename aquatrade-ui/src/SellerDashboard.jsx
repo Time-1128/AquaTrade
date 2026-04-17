@@ -489,24 +489,24 @@ export default function SellerDashboard() {
                     onClick={() => setShowRevenueModal(true)}
                     style={{ ...cardStyle, textAlign: "center", padding: "14px 8px", cursor: "pointer", border: "none", width: "100%" }}
                   >
-                    <p style={{ color: COLORS.textSoft, fontSize: "12px" }}>Revenue</p>
-                    <p style={{ color: COLORS.primary, fontWeight: 900, marginTop: "4px", fontSize: "20px" }}>₹{totalRevenue}</p>
+                    <p style={{ color: COLORS.textSoft, fontSize: "14px", fontWeight: "600" }}>Revenue</p>
+                    <p style={{ color: COLORS.primary, fontWeight: 900, marginTop: "4px", fontSize: "24px" }}>₹{totalRevenue}</p>
                     <p style={{ fontSize: "11px", color: COLORS.textSoft, marginTop: "2px" }}>tap for breakdown</p>
                   </button>
                   <button
                     onClick={() => setActiveTab("orders")}
                     style={{ ...cardStyle, textAlign: "center", padding: "14px 8px", cursor: "pointer", border: "none", width: "100%" }}
                   >
-                    <p style={{ color: COLORS.textSoft, fontSize: "12px" }}>Orders</p>
-                    <p style={{ color: COLORS.secondary, fontWeight: 900, marginTop: "4px", fontSize: "20px" }}>{totalOrders}</p>
+                    <p style={{ color: COLORS.textSoft, fontSize: "14px", fontWeight: "600" }}>Orders</p>
+                    <p style={{ color: COLORS.secondary, fontWeight: 900, marginTop: "4px", fontSize: "24px" }}>{totalOrders}</p>
                     <p style={{ fontSize: "11px", color: COLORS.textSoft, marginTop: "2px" }}>tap to view</p>
                   </button>
                   <button
                     onClick={() => setActiveTab("listings")}
                     style={{ ...cardStyle, textAlign: "center", padding: "14px 8px", cursor: "pointer", border: "none", width: "100%" }}
                   >
-                    <p style={{ color: COLORS.textSoft, fontSize: "12px" }}>Active</p>
-                    <p style={{ color: COLORS.accent, fontWeight: 900, marginTop: "4px", fontSize: "20px" }}>{activeListings}</p>
+                    <p style={{ color: COLORS.textSoft, fontSize: "14px", fontWeight: "600" }}>Active</p>
+                    <p style={{ color: COLORS.accent, fontWeight: 900, marginTop: "4px", fontSize: "24px" }}>{activeListings}</p>
                     <p style={{ fontSize: "11px", color: COLORS.textSoft, marginTop: "2px" }}>tap to view</p>
                   </button>
                 </div>

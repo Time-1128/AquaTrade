@@ -156,9 +156,14 @@ export default function OrdersPage() {
                 }}
               >
                 <div style={{ display: "flex", justifyContent: "space-between", gap: "10px", alignItems: "center" }}>
-                  <p style={{ color: "#0A3D62", fontWeight: 800, fontSize: "16px" }}>
-                    {order.orderId || order.id.slice(-6).toUpperCase()}
-                  </p>
+                  <div style={{ display: "flex", flexDirection: "column" }}>
+                    <p style={{ color: "#0A3D62", fontWeight: 800, fontSize: "16px" }}>
+                      {order.orderId || order.id.slice(-6).toUpperCase()}
+                    </p>
+                    <p style={{ color: "#64748B", fontSize: "12px", marginTop: "2px", fontWeight: 600 }}>
+                      📅 {order.createdAt?.seconds ? new Date(order.createdAt.seconds * 1000).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" }) : order.date || new Date().toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}
+                    </p>
+                  </div>
                   <span
                     style={{
                       background: order.status === "Completed" ? "#DCFCE7" : order.status === "Cancelled" ? "#FEE2E2" : "#E0F2FE",
@@ -191,6 +196,19 @@ export default function OrdersPage() {
                     }}
                   >
                     📍 Get Directions
+                  </button>
+                  <button
+                    onClick={() => {
+                        const phone = order.sellerPhone || order.items?.[0]?.sellerPhone;
+                        if(phone) window.location.href = `tel:${phone}`;
+                        else alert("Phone number not available");
+                    }}
+                    style={{
+                      background: "#DCFCE7", color: "#065F46", border: "none", borderRadius: "10px",
+                      padding: "9px 14px", fontSize: "14px", fontWeight: 700, cursor: "pointer", flex: 1
+                    }}
+                  >
+                    📞 Call Seller
                   </button>
                   {order.status !== "Completed" && order.status !== "Cancelled" && (
                     <button

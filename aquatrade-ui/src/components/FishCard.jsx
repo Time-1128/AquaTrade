@@ -172,24 +172,6 @@ export default function FishCard({ fish, onAdd }) {
           </div>
         )}
 
-        {freshnessText && (
-          <div
-            style={{
-              position: "absolute",
-              bottom: "8px",
-              right: "8px",
-              fontSize: "12px",
-              color: freshnessColor,
-              fontWeight: 600,
-              background: "rgba(255,255,255,0.9)",
-              padding: "2px 6px",
-              borderRadius: "6px"
-            }}
-          >
-            {freshnessText}
-          </div>
-        )}
-
       </div>
 
       <div style={{ padding: "14px" }}>

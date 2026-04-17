@@ -18,7 +18,7 @@ export default function LandingPage() {
       style={{
         minHeight: "100vh",
         background:
-          "linear-gradient(160deg, #0A3D62 0%, #0D6B8C 50%, #00B4D8 100%)",
+          "linear-gradient(160deg, #E8F9FF 0%, #CDEFFF 50%, #90E0EF 100%)",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
@@ -37,7 +37,7 @@ export default function LandingPage() {
             width: `${20 + i * 15}px`,
             height: `${20 + i * 15}px`,
             borderRadius: "50%",
-            background: "rgba(255,255,255,0.06)",
+            background: "rgba(10, 61, 98, 0.04)",
             left: `${10 + i * 12}%`,
             bottom: `${-10 + i * 8}%`,
             animation: `floatUp ${3 + i * 0.8}s ease-in-out infinite`,
@@ -71,6 +71,31 @@ export default function LandingPage() {
         }
       `}</style>
 
+      {/* Logo */}
+      <div
+        style={{
+          marginBottom: "24px",
+          animation: "pulse 2s infinite",
+          display: "flex",
+          justifyContent: "center",
+          opacity: loaded ? 1 : 0,
+          transform: loaded ? "translateY(0)" : "translateY(30px)",
+          transition: "all 0.8s ease",
+          mixBlendMode: "multiply",
+          zIndex: 1,
+        }}
+      >
+        <img 
+          src={logo} 
+          alt="AquaTrade Logo" 
+          style={{ 
+            height: "260px", 
+            width: "auto",
+            display: "block"
+          }} 
+        />
+      </div>
+
       <div
         style={{
           opacity: loaded ? 1 : 0,
@@ -80,52 +105,11 @@ export default function LandingPage() {
           zIndex: 1,
         }}
       >
-        {/* Logo */}
-        <div
-          style={{
-            marginBottom: "24px",
-            animation: "pulse 2s infinite",
-            filter: "drop-shadow(0 8px 20px rgba(0,180,216,0.5))",
-            display: "flex",
-            justifyContent: "center"
-          }}
-        >
-          <img src={logo} alt="AquaTrade Logo" style={{ maxHeight: "80px", width: "auto" }} />
-        </div>
-
-        <h1
-          style={{
-            fontFamily: "'Syne', sans-serif",
-            fontSize: "36px",
-            fontWeight: 800,
-            color: "white",
-            lineHeight: 1.1,
-            marginBottom: "12px",
-            letterSpacing: "-0.03em",
-          }}
-        >
-          AquaTrade
-        </h1>
-
-        <p
-          style={{
-            fontFamily: "'Syne', sans-serif",
-            fontSize: "13px",
-            fontWeight: 600,
-            color: "rgba(255,255,255,0.6)",
-            letterSpacing: "0.2em",
-            textTransform: "uppercase",
-            marginBottom: "32px",
-          }}
-        >
-          Smart Fish Marketplace
-        </p>
-
         <p
           style={{
             fontFamily: "'DM Sans', sans-serif",
             fontSize: "16px",
-            color: "rgba(255,255,255,0.85)",
+            color: "rgba(10, 61, 98, 0.9)",
             lineHeight: 1.6,
             maxWidth: "280px",
             margin: "0 auto 40px",
@@ -153,14 +137,14 @@ export default function LandingPage() {
             <span
               key={f}
               style={{
-                background: "rgba(255,255,255,0.12)",
-                color: "rgba(255,255,255,0.9)",
+                background: "rgba(10, 61, 98, 0.08)",
+                color: "#0A3D62",
                 padding: "6px 14px",
                 borderRadius: "20px",
                 fontSize: "12px",
                 fontFamily: "'Syne', sans-serif",
                 fontWeight: 600,
-                border: "1px solid rgba(255,255,255,0.2)",
+                border: "1px solid rgba(10, 61, 98, 0.15)",
                 backdropFilter: "blur(10px)",
               }}
             >
@@ -176,7 +160,7 @@ export default function LandingPage() {
             alignItems: "center",
             gap: "8px",
             justifyContent: "center",
-            color: "rgba(255,255,255,0.6)",
+            color: "rgba(10, 61, 98, 0.8)",
             fontSize: "14px",
           }}
         >
@@ -187,7 +171,7 @@ export default function LandingPage() {
                 style={{
                   width: "8px",
                   height: "8px",
-                  background: "#90E0EF",
+                  background: "#0A3D62",
                   borderRadius: "50%",
                   animation: `bounce 1.4s infinite ease-in-out`,
                   animationDelay: `${i * 0.2}s`,

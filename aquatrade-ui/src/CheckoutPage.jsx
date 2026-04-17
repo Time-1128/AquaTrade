@@ -5,9 +5,10 @@ import { addDoc, collection, serverTimestamp, doc, updateDoc, increment } from "
 
 /* ── Fixed booking-fee tiers ── */
 function getBookingFee(total) {
-  if (total <= 500) return 5;
-  if (total <= 2000) return 10;
-  return 20;
+  if (total < 500) return 25;
+  if (total <= 1000) return 45;
+  if (total <= 5000) return 75;
+  return 100;
 }
 
 /* ── Coupon progress helper ── */
@@ -35,6 +36,8 @@ export default function CheckoutPage() {
   );
 
   const [address, setAddress] = useState(sellerAddressFromCart);
+  const [buyerName, setBuyerName] = useState(user?.name || "");
+  const [buyerPhone, setBuyerPhone] = useState(user?.phoneNumber || "");
   const [payMethod] = useState("upi");
   const [loading, setLoading] = useState(false);
   const [useToken, setUseToken] = useState(false);
@@ -47,7 +50,7 @@ export default function CheckoutPage() {
   const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
   const bookingFee = getBookingFee(total);
   const availableTokens = Number(user?.tokens || 0);
-  const walletBalance = user?.walletBalance !== undefined ? Number(user.walletBalance) : 500;
+  const walletBalance = 500; // Hardcoded per user request
   const canUseToken = availableTokens > 0;
   const payableAmount = useToken && canUseToken ? 0 : bookingFee;
 
@@ -78,8 +81,8 @@ export default function CheckoutPage() {
 
       const orderData = {
         userId: currentUser?.uid || user?.uid,
-        customerName: user?.name || "Buyer",
-        customerPhone: user?.phoneNumber || currentUser?.phoneNumber || "",
+        customerName: buyerName || user?.name || "Buyer",
+        customerPhone: buyerPhone || user?.phoneNumber || currentUser?.phoneNumber || "",
         orderId,
         items: cart.map(item => ({
           id: item.id,
@@ -89,7 +92,9 @@ export default function CheckoutPage() {
           seller: item.sellerName || "Direct Seller",
           sellerShopName: item.sellerShopName || "AquaTrade Seller",
           sellerId: item.sellerId || null,
+          sellerPhone: item.sellerPhone || null,
         })),
+        sellerPhone: cart.find((item) => item.sellerPhone)?.sellerPhone || "",
         total: payableAmount,
         fullTotal: total,
         status: "Confirmed",
@@ -117,12 +122,10 @@ export default function CheckoutPage() {
           payload: { ...user, tokens: Math.max(availableTokens - 1, 0) },
         });
       } else {
-        await updateDoc(doc(db, "users", currentUser.uid), {
-          walletBalance: increment(-bookingFee),
-        });
+        // Keeping wallet balance explicitly at 500 for testing, bypassing db update
         dispatch({
           type: "SET_USER",
-          payload: { ...user, walletBalance: walletBalance - bookingFee },
+          payload: { ...user, walletBalance: 500 },
         });
       }
 
@@ -210,8 +213,18 @@ export default function CheckoutPage() {
           Booking Confirmed!
         </h1>
         <p style={{ color: "#6B7280", fontSize: "15px", marginBottom: "20px" }}>
-          Show token at fish market counter
+          Show token to seller at pickup
         </p>
+
+        <div style={{ background: "white", padding: "16px", borderRadius: "12px", marginBottom: "20px", width: "100%", maxWidth: "340px", boxShadow: "0 2px 12px rgba(0,0,0,0.06)", textAlign: "left", border: "1px solid #E2E8F0" }}>
+            <h3 style={{ color: "#0F4C75", fontSize: "16px", marginBottom: "10px", fontWeight: 800 }}>Seller Details Unlocked 🔓</h3>
+            <p style={{ color: "#334155", fontSize: "14px", marginBottom: "6px" }}>
+              <strong>📞 Phone:</strong> {cart.find((item) => item.sellerPhone)?.sellerPhone || "Not Provided"}
+            </p>
+            <p style={{ color: "#334155", fontSize: "14px", lineHeight: 1.4 }}>
+              <strong>📍 Pickup Address:</strong> {address || "Not Provided"}
+            </p>
+        </div>
 
         {couponEarned && (
           <div
@@ -284,7 +297,7 @@ export default function CheckoutPage() {
           ←
         </button>
         <h1 style={{ color: "white", fontSize: "20px", fontWeight: 800 }}>
-          {step === "address" ? "Pickup Details" : "Token Payment"}
+          {step === "address" ? "Your Details" : "Token Payment"}
         </h1>
       </div>
 
@@ -309,20 +322,30 @@ export default function CheckoutPage() {
                 border: "1px solid #B3ECF7",
                 borderRadius: "12px",
                 padding: "12px",
-                marginBottom: "12px",
+                marginBottom: "16px",
                 color: "#0A3D62",
                 fontSize: "14px",
                 fontWeight: 600,
               }}
             >
-              Pickup location auto-filled from seller listing. You can edit it before payment.
+              🔒 Exact pickup location and seller phone number will be revealed after booking.
             </div>
-            <textarea
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              rows={3}
+
+            <label style={{ display: "block", marginBottom: "6px", fontSize: "14px", color: "#4A5568", fontWeight: 700 }}>Your Name</label>
+            <input
+              value={buyerName}
+              onChange={(e) => setBuyerName(e.target.value)}
               className="input-field"
-              placeholder="Enter pickup location"
+              placeholder="Enter your name"
+              style={{ marginBottom: "16px" }}
+            />
+
+            <label style={{ display: "block", marginBottom: "6px", fontSize: "14px", color: "#4A5568", fontWeight: 700 }}>Your Phone Number</label>
+            <input
+              value={buyerPhone}
+              onChange={(e) => setBuyerPhone(e.target.value)}
+              className="input-field"
+              placeholder="Enter your phone number"
             />
 
             <button
@@ -362,7 +385,7 @@ export default function CheckoutPage() {
               </h2>
               <p style={{ fontSize: "13px", opacity: 0.7, marginTop: "6px" }}>
                 Order total: ₹{total} · Booking fee tier:{" "}
-                {total <= 500 ? "₹0–500 → ₹5" : total <= 2000 ? "₹500–2000 → ₹10" : "₹2000+ → ₹20"}
+                {total < 500 ? "<₹500 → ₹25" : total <= 1000 ? "₹500–1000 → ₹45" : total <= 5000 ? "₹1000–5000 → ₹75" : ">₹5000 → ₹100"}
               </p>
             </div>
 

@@ -161,18 +161,26 @@ export default function LoginPage() {
       <div id="recaptcha-container"></div>
       <div
         style={{
-          background: "linear-gradient(160deg, #0F4C75 0%, #00B4D8 100%)",
+          background: "linear-gradient(160deg, #E8F9FF 0%, #CDEFFF 50%, #90E0EF 100%)",
           padding: "52px 24px 72px",
           textAlign: "center",
           position: "relative",
           overflow: "hidden",
         }}
       >
-        <div style={{ marginBottom: "10px", display: "flex", justifyContent: "center" }}>
-          <img src={logo} alt="AquaTrade Logo" style={{ height: "40px", width: "auto" }} />
+        <div style={{ marginBottom: "20px", display: "flex", justifyContent: "center" }}>
+          <img 
+            src={logo} 
+            alt="AquaTrade Logo" 
+            style={{ 
+              height: "180px", 
+              width: "auto",
+              mixBlendMode: "multiply",
+              display: "block"
+            }} 
+          />
         </div>
-        <h1 style={{ fontSize: "28px", fontWeight: 800, color: "white", marginBottom: "6px" }}>Welcome to AquaTrade</h1>
-        <p style={{ color: "rgba(255,255,255,0.82)", fontSize: "14px" }}>Login with Email or Phone OTP</p>
+        <p style={{ color: "#0A3D62", fontSize: "15px", fontWeight: "600", letterSpacing: "0.02em" }}>Login with Email or Phone OTP</p>
         <div
           style={{
             position: "absolute",

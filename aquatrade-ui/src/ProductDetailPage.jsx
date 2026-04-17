@@ -11,6 +11,41 @@ export default function ProductDetailPage() {
   const [toast, setToast] = useState("");
   const [activeImageIndex, setActiveImageIndex] = useState(0);
 
+  const freshnessText = useMemo(() => {
+    if (!fish?.catchDateTime) return "";
+
+    const catchTime = new Date(fish.catchDateTime).getTime();
+    const now = Date.now();
+    const diffMs = now - catchTime;
+
+    const diffMins = Math.floor(diffMs / (1000 * 60));
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+    if (diffMins < 60) {
+      return `🕒 Caught ${diffMins} mins ago`;
+    } 
+    else if (diffHours < 24) {
+      return `🕒 Caught ${diffHours} hrs ago`;
+    } 
+    else {
+      const remainingHours = diffHours % 24;
+      return `🕒 Caught ${diffDays}d ${remainingHours}h ago`;
+    }
+  }, [fish?.catchDateTime]);
+
+  const freshnessColor = useMemo(() => {
+    if (!fish?.catchDateTime) return "#6B7280";
+
+    const catchTime = new Date(fish.catchDateTime).getTime();
+    const now = Date.now();
+    const diffHours = (now - catchTime) / (1000 * 60 * 60);
+
+    if (diffHours < 6) return "#16A34A";
+    if (diffHours < 24) return "#F59E0B";
+    return "#6B7280";
+  }, [fish?.catchDateTime]);
+
   useEffect(() => {
 
     if (!fish) {
@@ -227,6 +262,24 @@ export default function ProductDetailPage() {
             {fish.type} • {fish.category}
           </p>
 
+          {freshnessText && (
+            <div
+              style={{
+                display: "inline-block",
+                marginTop: "12px",
+                fontSize: "14px",
+                color: freshnessColor,
+                fontWeight: 700,
+                background: "rgba(255,255,255,0.8)",
+                padding: "6px 14px",
+                borderRadius: "20px",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.04)"
+              }}
+            >
+              {freshnessText}
+            </div>
+          )}
+
         </div>
 
         {/* PRICE */}
@@ -288,13 +341,13 @@ export default function ProductDetailPage() {
             {fish.sellerName ? (
               <p style={{ color: "#4A5568", marginBottom: "6px", fontSize: "15px" }}>👤 {fish.sellerName}</p>
             ) : null}
-            <p style={{ color: "#4A5568", marginBottom: "6px", fontSize: "15px" }}>📞 {fish.sellerPhone || "Not provided"}</p>
-            <p style={{ color: "#4A5568", marginBottom: "6px", fontSize: "15px" }}>
-              📍 {fish.location?.address || fish.address || fish.sellerAddress || "Location unavailable"}
+            <p style={{ color: "#4A5568", marginBottom: "6px", fontSize: "15px", fontWeight: 600 }}>📞 Hidden until booking</p>
+            <p style={{ color: "#4A5568", marginBottom: "6px", fontSize: "15px", fontWeight: 600 }}>
+              📍 Exact location provided after booking
             </p>
             {typeof fish.distanceKm === "number" && (
               <p style={{ color: "#4A5568", marginBottom: "6px", fontSize: "15px" }}>
-                🚚 {fish.distanceKm.toFixed(1)} km away
+                🚚 {fish.distanceKm.toFixed(1)} km approx distance
               </p>
             )}
             {fish.rating && (
@@ -302,43 +355,39 @@ export default function ProductDetailPage() {
                 ⭐ {fish.rating.toFixed(1)} ({fish.reviews || 0} reviews)
               </p>
             )}
-            <div style={{ display: "grid", gap: "10px" }}>
+            <div style={{ display: "grid", gap: "10px", opacity: 0.65 }}>
               <button
                 type="button"
-                onClick={() => {
-                  if (!fish.sellerPhone) return;
-                  window.location.href = `tel:${fish.sellerPhone}`;
-                }}
                 className="btn-primary"
-                disabled={!fish.sellerPhone}
+                disabled={true}
                 style={{
                   width: "100%",
-                  background: fish.sellerPhone ? "#2ECC71" : "#9CA3AF",
+                  background: "#9CA3AF",
                   border: "none",
                   borderRadius: "12px",
                   padding: "12px",
                   fontWeight: 700,
-                  cursor: fish.sellerPhone ? "pointer" : "not-allowed"
+                  cursor: "not-allowed"
                 }}
               >
-                Call Seller
+                🔒 Call Seller (After booking)
               </button>
               <button
-                onClick={openMaps}
                 type="button"
                 className="btn-secondary"
+                disabled={true}
                 style={{
                   width: "100%",
                   borderRadius: "12px",
                   border: "1px solid #94A3B8",
                   padding: "12px",
-                  background: "white",
-                  color: "#0F4C75",
+                  background: "#F1F5F9",
+                  color: "#64748B",
                   fontWeight: 700,
-                  cursor: "pointer"
+                  cursor: "not-allowed"
                 }}
               >
-                View on Maps
+                🔒 View Maps (After booking)
               </button>
             </div>
           </section>

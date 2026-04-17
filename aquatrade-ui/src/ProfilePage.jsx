@@ -303,7 +303,7 @@ export default function ProfilePage() {
               <div style={{ background: "#F5F8FB", padding: "16px", borderRadius: "14px", border: "1px solid #E2E8F0" }}>
                 <p style={{ color: "#64748B", fontSize: "13px", fontWeight: 600 }}>Wallet Balance</p>
                 <h3 style={{ color: themePrimary, fontWeight: 900, fontSize: "26px", marginTop: "4px" }}>
-                  ₹{user?.walletBalance !== undefined ? user?.walletBalance : 500}
+                  ₹500
                 </h3>
               </div>
 
